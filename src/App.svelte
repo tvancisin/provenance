@@ -1,10 +1,8 @@
 <script>
   import * as d3 from "d3";
-  import { data } from "./utils";
+  import { data, generateDiagonalProgPath } from "./utils";
 
   // todo
-  // differentiate between different groups steps
-  // could be shown as some kind of backgrounds. these are visualizations, these are databases...
   // add external datasets at least acled and ucdp
 
   let width,
@@ -17,6 +15,9 @@
     linksUp = [],
     nodesDown = [],
     linksDown = [];
+
+  const orbitRadius = 8;
+  const ringGap = 4;
 
   $: innerWidth = width - margin.right - margin.left;
   $: innerHeight = height - margin.top - margin.bottom;
@@ -31,11 +32,11 @@
     },
     (d) => d.children,
   );
-  console.log(rootDown);
   $: upwardCluster = d3.cluster().size([innerWidth, upHeight]);
   $: downwardCluster = d3.cluster().size([innerWidth, downHeight]);
 
-  function setUniformY(node, spacing = 100) {
+  // position downward tree
+  function setUniformY(node, spacing) {
     if (!node.children) return;
     node.children.forEach((child) => {
       child.y = node.y + spacing; // child one level below parent
@@ -43,6 +44,8 @@
     });
   }
 
+  // positioning of the upward tree node positions
+  const defaultWeightUp = 1;
   const depthWeightUp = {
     0: 0.6, // root
     1: 0.6, // Collect
@@ -52,14 +55,11 @@
     5: 0.6, // QC
   };
 
-  const defaultWeightUp = 1.0;
-
   function setResponsiveY(node, unitHeight) {
     if (!node.children) return;
 
     node.children.forEach((child) => {
       const weight = depthWeightUp[child.depth] ?? defaultWeightUp;
-
       child.y = node.y + weight * unitHeight;
       setResponsiveY(child, unitHeight);
     });
@@ -100,7 +100,6 @@
 
       group.nodes.forEach((subRoot, i) => {
         const localOffset = (i * nodeSpacing - group.width / 2) * scale;
-
         const targetX = groupCenter + localOffset;
         const dx = targetX - subRoot.x;
 
@@ -113,29 +112,65 @@
     });
   }
 
+  $: regionLabels = (() => {
+    if (!rootDown.children) return [];
+
+    const groups = d3.group(
+      rootDown.children,
+      (d) => d.data.continent ?? "Unknown",
+    );
+
+    return Array.from(groups, ([continent, nodes]) => ({
+      continent,
+      count: nodes[0]?.data.number ?? nodes.length, // true count
+      x: d3.mean(nodes, (d) => d.x),
+      y: yCenter + downHeight,
+    }));
+  })();
+
+  function alignBranchToX(root, sourceName, targetName, stopAtName = null) {
+    const source = root.descendants().find((d) => d.data.name === sourceName);
+    const target = root.descendants().find((d) => d.data.name === targetName);
+
+    if (!source || !target) return;
+
+    const targetX = target.x;
+    let node = source;
+
+    while (node) {
+      node.x = targetX;
+
+      if (stopAtName && node.data.name === stopAtName) break;
+      node = node.parent;
+    }
+  }
+
   $: {
     upwardCluster(rootUp);
     downwardCluster(rootDown);
 
+    // align specific branches
+    alignBranchToX(rootUp, "PA-X Gender", "PeaceFem");
+    alignBranchToX(rootUp, "PAA-X", "VUE");
+
+    // center upward and downward tree on "Collect" node
     const collectNode = rootUp
       .descendants()
       .find((d) => d.data.name === "Collect");
-
     rootDown.x = collectNode.x;
     rootUp.y = 0;
 
-    // --- spacing logic unchanged ---
+    // positioning of the upward tree nodes
     const maxDepth = rootUp.height + 1;
     let totalWeight = 0;
-
     for (let d = 1; d <= maxDepth; d++) {
       totalWeight += depthWeightUp[d] ?? defaultWeightUp;
     }
-
     const unitHeight = upHeight / totalWeight;
     setResponsiveY(rootUp, unitHeight);
 
-    const spacingDown = downHeight / (rootDown.height + 1);
+    // positioning of the downward tree nodes
+    const spacingDown = downHeight / (rootDown.height + 0.8);
     setUniformY(rootDown, spacingDown);
 
     // spacing for downward nodes based on continents
@@ -260,7 +295,7 @@
 
   /////////////////////////////// gradual reveal logic //////////////////////
   let currentLevelDown = 0;
-  let currentLevelUp = 0;
+  let currentLevelUp = -1;
   let segment_height;
   // levels for downward nodes
   $: nodesDown.forEach((node) => {
@@ -273,7 +308,7 @@
   $: maxHeightUp = Math.max(...nodesUp.map((d) => d.height));
   $: maxHeightDown = Math.max(...nodesDown.map((d) => d.level));
 
-  $: currentHeightUp = currentLevelUp >= 1 ? currentLevelUp : null;
+  $: currentHeightUp = currentLevelUp >= 0 ? currentLevelUp : null;
 
   // tree up
   $: visibleNodesUp =
@@ -305,8 +340,138 @@
     }
   }
 
-  const orbitRadius = 8; // base distance from main node
-  const ringGap = 4;
+  // connecting same type nodes
+  // prog connections
+  $: paXProgNodes = rootUp
+    .descendants()
+    .filter((d) => d.data.type === "prog" && d.data.name !== "PA-X");
+  $: paXProgNodes.sort((a, b) => a.x - b.x);
+  $: obstacles = rootUp
+    .descendants()
+    .filter(
+      (d) =>
+        !paXProgNodes.includes(d) &&
+        d.parent?.ancestors().some((a) => a.data.name === "PA-X"),
+    );
+  $: progPath = generateDiagonalProgPath(yCenter, paXProgNodes, obstacles, 40);
+
+  // prog connections
+  $: paXVisNodes = rootUp
+    .descendants()
+    .filter((d) => d.data.type === "vis" && d.data.name !== "PA-X");
+  $: paXProgNodes.sort((a, b) => a.x - b.x);
+  $: visObstacles = rootUp
+    .descendants()
+    .filter(
+      (d) =>
+        !paXProgNodes.includes(d) &&
+        d.parent?.ancestors().some((a) => a.data.name === "PA-X"),
+    );
+  $: visPath = generateDiagonalProgPath(yCenter, paXVisNodes, visObstacles, 40);
+
+  // db connections
+  $: paXDBNodes = rootUp
+    .descendants()
+    .filter((d) => d.data.type === "db" && d.data.name !== "PA-X");
+  $: paXDBNodes.sort((a, b) => a.x - b.x);
+  $: dbObstacles = rootUp
+    .descendants()
+    .filter(
+      (d) =>
+        !paXDBNodes.includes(d) &&
+        d.parent?.ancestors().some((a) => a.data.name === "PA-X"),
+    );
+  $: dbPath = generateDiagonalProgPath(yCenter, paXDBNodes, dbObstacles, 40);
+
+  // qc connections
+  $: qcNodes = rootUp
+    .descendants()
+    .filter(
+      (d) => d.data.type === "quality_control" && d.data.name !== "PA-X QC",
+    );
+  $: qcNodes.sort((a, b) => a.x - b.x);
+  $: qcObstacles = rootUp
+    .descendants()
+    .filter(
+      (d) =>
+        !qcNodes.includes(d) &&
+        d.parent?.ancestors().some((a) => a.data.name === "PA-X"),
+    );
+  $: qcPath = generateDiagonalProgPath(yCenter, qcNodes, qcObstacles, 40);
+
+  // code connections
+  $: codeNodes = rootUp
+    .descendants()
+    .filter((d) => d.data.type === "code" && d.data.name !== "PA-X Code");
+  $: codeNodes.sort((a, b) => a.x - b.x);
+  $: codeObstacles = rootUp
+    .descendants()
+    .filter(
+      (d) =>
+        !codeNodes.includes(d) &&
+        d.parent?.ancestors().some((a) => a.data.name === "PA-X"),
+    );
+  $: codePath = generateDiagonalProgPath(yCenter, codeNodes, codeObstacles, 40);
+
+  // paper connections
+  $: paXPaperNodes = rootUp
+    .descendants()
+    .filter((d) => d.data.type === "paper" && d.data.name !== "PA-X");
+  $: paXPaperNodes.sort((a, b) => a.x - b.x);
+  $: paperObstacles = rootUp
+    .descendants()
+    .filter(
+      (d) =>
+        !paXPaperNodes.includes(d) &&
+        d.parent?.ancestors().some((a) => a.data.name === "PA-X"),
+    );
+  $: paperPath = generateDiagonalProgPath(
+    yCenter,
+    paXPaperNodes,
+    paperObstacles,
+    40,
+  );
+  // $: paXDBNodes = rootUp
+  //   .descendants()
+  //   .filter(
+  //     (d) =>
+  //       d.data.type === "db" &&
+  //       d.data.name !== "PA-X" &&
+  //       d
+  //         .ancestors()
+  //         .some((a) => a.data.name === "QC" && a.parent?.data.name === "Code"),
+  //   );
+
+  // $: paXDBNodes.sort((a, b) => a.x - b.x);
+
+  // function getSubtreeBounds(root, parentName, childType = null) {
+  //   const parent = root.descendants().find((d) => d.data.name === parentName);
+  //   if (!parent) return null;
+
+  //   // Get all descendants EXCLUDING the parent itself
+  //   let nodes = parent.descendants().filter((d) => d !== parent);
+
+  //   // If a childType is specified, only keep nodes matching that type
+  //   if (childType) {
+  //     nodes = nodes.filter((d) => d.data.type === childType);
+  //   }
+
+  //   if (!nodes.length) return null;
+
+  //   return {
+  //     minX: d3.min(nodes, (d) => d.x),
+  //     maxX: d3.max(nodes, (d) => d.x),
+  //     minY: d3.min(nodes, (d) => d.y),
+  //     maxY: d3.max(nodes, (d) => d.y),
+  //     nodes,
+  //   };
+  // }
+
+  // $: paXQCBounds = getSubtreeBounds(rootUp, "PA-X", "quality_control");
+  // $: paXCodeBounds = getSubtreeBounds(rootUp, "PA-X", "code");
+  // $: paXProgBounds = getSubtreeBounds(rootUp, "PA-X", "db");
+  // $: paXD3Bounds = getSubtreeBounds(rootUp, "PAA-X", "prog");
+  // $: paXPaperBounds = getSubtreeBounds(rootUp, "PA-X", "paper");
 </script>
 
 <div id="wrapper" bind:clientWidth={width} bind:clientHeight={height}>
@@ -317,6 +482,19 @@
     {#if width !== undefined || height !== undefined}
       <svg {width} {height}>
         <g transform={`translate(${margin.right}, ${margin.top})`}>
+          <!-- region labels -->
+          {#each regionLabels as r}
+            <text
+              x={r.x}
+              y={r.y}
+              text-anchor="middle"
+              font-size="12"
+              fill="white"
+              letter-spacing="0.5"
+            >
+              {r.continent.replace("_", " ") + ` (${r.count})`}
+            </text>
+          {/each}
           <!-- downward links -->
           {#each visibleLinks as d}
             <path
@@ -326,7 +504,7 @@
         ${d.parent.x},${yCenter + d.parent.y}`}
               fill="none"
               stroke={highlightedLinks.has(`${d.parent.data.id}→${d.data.id}`)
-                ? "yellow"
+                ? "orange"
                 : "#595959"}
               stroke-width="1"
             />
@@ -335,7 +513,7 @@
           <!-- downward nodes -->
           {#each visibleNodesDown as d}
             <g transform={`translate(${d.x}, ${yCenter + d.y})`}>
-              <text
+              <!-- <text
                 x={-8}
                 y={0}
                 font-size="8"
@@ -344,12 +522,12 @@
                 text-anchor="end"
               >
                 {d.data.name}
-              </text>
+              </text> -->
               <circle
                 cx="0"
                 cy="0"
                 r="1"
-                fill="white"
+                fill="gray"
                 tabindex="0"
                 role="button"
                 aria-label="Node details"
@@ -365,39 +543,264 @@
             </g>
           {/each}
 
+          <!-- <path
+            d={paXProgNodes.length > 0
+              ? paXProgNodes
+                  .map(
+                    (d, i) => `${i === 0 ? "M" : "L"}${d.x},${yCenter - d.y}`,
+                  )
+                  .join(" ")
+              : ""}
+            fill="none"
+            stroke="steelblue"
+            stroke-width="1.5"
+            stroke-dasharray="4 2"
+          /> -->
+
+          <path
+            d={progPath}
+            fill="none"
+            stroke="steelblue"
+            stroke-width="30"
+            stroke-opacity="0.3"
+            stroke-linecap="round"
+          />
+
+          <path
+            d={visPath}
+            fill="none"
+            stroke="white"
+            stroke-width="30"
+            stroke-opacity="0.3"
+            stroke-linecap="round"
+          />
+
+          <path
+            d={dbPath}
+            fill="none"
+            stroke="yellow"
+            stroke-width="30"
+            stroke-opacity="0.3"
+            stroke-linecap="round"
+          />
+
+          <path
+            d={qcPath}
+            fill="none"
+            stroke="red"
+            stroke-width="30"
+            stroke-opacity="0.3"
+            stroke-linecap="round"
+          />
+
+          <path
+            d={codePath}
+            fill="none"
+            stroke="green"
+            stroke-width="30"
+            stroke-opacity="0.3"
+            stroke-linecap="round"
+          />
+
+          <path
+            d={paperPath}
+            fill="none"
+            stroke="green"
+            stroke-width="30"
+            stroke-opacity="0.3"
+            stroke-linecap="round"
+          />
+          <!-- {#if paXQCBounds}
+            <rect
+              x={paXQCBounds.minX}
+              y={yCenter - paXQCBounds.maxY - 15}
+              width={paXQCBounds.maxX - paXQCBounds.minX}
+              height={paXQCBounds.maxY - paXQCBounds.minY + 30}
+              fill="steelblue"
+              fill-opacity="0.3"
+              pointer-events="none"
+            />
+          {/if}
+
+          {#if paXCodeBounds}
+            <rect
+              x={paXCodeBounds.minX}
+              y={yCenter - paXCodeBounds.maxY - 15}
+              width={paXCodeBounds.maxX - paXCodeBounds.minX}
+              height={paXCodeBounds.maxY - paXCodeBounds.minY + 30}
+              fill="red"
+              fill-opacity="0.3"
+              pointer-events="none"
+            />
+          {/if}
+          {#if paXProgBounds}
+            <rect
+              x={paXProgBounds.minX}
+              y={yCenter - paXProgBounds.maxY - 15}
+              width={paXProgBounds.maxX - paXProgBounds.minX}
+              height={paXProgBounds.maxY - paXProgBounds.minY + 30}
+              fill="yellow"
+              fill-opacity="0.3"
+              pointer-events="none"
+            />
+          {/if}
+          {#if paXD3Bounds}
+            <rect
+              x={paXD3Bounds.minX}
+              y={yCenter - paXD3Bounds.maxY - 15}
+              width={paXD3Bounds.maxX - paXD3Bounds.minX}
+              height={paXD3Bounds.maxY - paXD3Bounds.minY + 30}
+              fill="white"
+              fill-opacity="0.3"
+              pointer-events="none"
+            />
+          {/if}
+          {#if paXPaperBounds}
+            <rect
+              x={paXPaperBounds.minX}
+              y={yCenter - paXPaperBounds.maxY - 15}
+              width={paXPaperBounds.maxX - paXPaperBounds.minX}
+              height={paXPaperBounds.maxY - paXPaperBounds.minY + 30}
+              fill="green"
+              fill-opacity="0.3"
+              pointer-events="none"
+            />
+          {/if} -->
+
           <!-- upward links -->
           {#each visibleLinksUp as d}
             <path
               d={`M${d.x},${yCenter - d.y}
-        C${d.x},${yCenter - d.parent.y - 20}
-         ${d.parent.x},${yCenter - d.parent.y - 50}
-         ${d.parent.x},${yCenter - d.parent.y}`}
+      C${d.x},${yCenter - d.parent.y - 20}
+       ${d.parent.x},${yCenter - d.parent.y - 50}
+       ${d.parent.x},${yCenter - d.parent.y}`}
               fill="none"
               stroke={highlightedLinks.has(`${d.parent.data.id}→${d.data.id}`)
                 ? "orange"
                 : "#595959"}
-              stroke-width="1"
+              stroke-width={d.data.branch_type === "trunk"
+                ? 10
+                : d.data.branch_type === "upper_trunk"
+                  ? 7
+                  : d.data.branch_type === "uppest_trunk"
+                    ? 4
+                    : 1}
             />
           {/each}
+
           <!-- upward nodes -->
           {#each visibleNodesUp as d}
             <g transform={`translate(${d.x}, ${yCenter - d.y})`}>
-              <text
-                x={d.children ? 12 : 5}
-                y={d.children ? 5 : -10}
-                font-size="8"
-                fill="gray"
-                transform={"rotate(-35)"}
-              >
-                {d.data.name}
-              </text>
+              <!-- background circles -->
+              <!-- {#if d.data.type == "vis"}
+                <circle cx="0" cy="0" r="20" fill="white" fill-opacity="0.3"
+                ></circle>
+              {/if}
+              {#if d.data.type == "prog"}
+                <circle cx="0" cy="0" r="20" fill="gray" fill-opacity="0.3"
+                ></circle>
+              {/if}
+              {#if d.data.type == "db"}
+                <circle cx="0" cy="0" r="20" fill="black" fill-opacity="0.7"
+                ></circle>
+              {/if}
+              {#if d.data.type == "quality_control"}
+                <circle cx="0" cy="0" r="20" fill="yellow" fill-opacity="0.4"
+                ></circle>
+              {/if}
+              {#if d.data.type == "code"}
+                <circle cx="0" cy="0" r="20" fill="steelblue" fill-opacity="0.4"
+                ></circle>
+              {/if}
+              {#if d.data.type == "paper"}
+                <circle cx="0" cy="0" r="20" fill="red" fill-opacity="0.4"
+                ></circle>
+              {/if} -->
+
+              <!-- <text
+                  x={25}
+                  y={d.children ? 5 : -10}
+                  font-size="8"
+                  fill="white"
+                  transform={"rotate(-35)"}
+                >
+                 {d.data.name} 
+                </text> -->
+
+              <!-- label -->
+              {#if d.data.name == "Tracker"}
+                <text
+                  x={20}
+                  y={5}
+                  font-size="10"
+                  fill="white"
+                  transform={"rotate(-35)"}
+                >
+                  Visualization
+                </text>
+              {/if}
+              {#if d.data.label == "Programming"}
+                <text
+                  x={20}
+                  y={5}
+                  font-size="10"
+                  fill="white"
+                  transform={"rotate(-35)"}
+                >
+                  Programming
+                </text>
+              {/if}
+              {#if d.data.label == "Quality Control"}
+                <text
+                  x={20}
+                  y={5}
+                  font-size="10"
+                  fill="white"
+                  transform={"rotate(-35)"}
+                >
+                  Quality Control
+                </text>
+              {/if}
+              {#if d.data.label == "Coding"}
+                <text
+                  x={20}
+                  y={5}
+                  font-size="10"
+                  fill="white"
+                  transform={"rotate(-35)"}
+                >
+                  Coding
+                </text>
+              {/if}
+              {#if d.data.name == "PAA-X"}
+                <text
+                  x={20}
+                  y={5}
+                  font-size="10"
+                  fill="white"
+                  transform={"rotate(-35)"}
+                >
+                  Databases
+                </text>
+              {/if}
+              {#if d.data.label == "paper"}
+                <text
+                  x={20}
+                  y={5}
+                  font-size="10"
+                  fill="white"
+                  transform={"rotate(-35)"}
+                >
+                  Publications
+                </text>
+              {/if}
 
               <!-- main circle -->
               <circle
                 cx="0"
                 cy="0"
-                r="1"
-                fill="white"
+                r="4.5"
+                fill="#999999"
                 tabindex="0"
                 role="button"
                 aria-label="Node details"
@@ -418,7 +821,7 @@
                   cy={(orbitRadius + ringGap * Math.floor(i / 12)) *
                     Math.sin(((-90 + ((i % 12) + 1) * 30) * Math.PI) / 180)}
                   r="1.5"
-                  fill="yellow"
+                  fill="white"
                 />
               {/each}
             </g>
