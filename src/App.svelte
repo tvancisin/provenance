@@ -16,6 +16,12 @@
     nodesDown = [],
     linksDown = [];
 
+  const lineGenerator = d3
+    .line()
+    .x((d) => d[0])
+    .y((d) => d[1])
+    .curve(d3.curveMonotoneX);
+
   const orbitRadius = 8;
   const ringGap = 4;
 
@@ -340,11 +346,15 @@
     }
   }
 
+  $: console.log(currentLevelUp);
+
   // connecting same type nodes
   // prog connections
   $: paXProgNodes = rootUp
     .descendants()
-    .filter((d) => d.data.type === "prog" && d.data.name !== "PA-X");
+    .filter((d) => d.data.type === "prog" && d.parent.data.name == "PA-X");
+  $: console.log(paXProgNodes);
+
   $: paXProgNodes.sort((a, b) => a.x - b.x);
   $: obstacles = rootUp
     .descendants()
@@ -355,16 +365,16 @@
     );
   $: progPath = generateDiagonalProgPath(yCenter, paXProgNodes, obstacles, 40);
 
-  // prog connections
+  // vis connections
   $: paXVisNodes = rootUp
     .descendants()
     .filter((d) => d.data.type === "vis" && d.data.name !== "PA-X");
-  $: paXProgNodes.sort((a, b) => a.x - b.x);
+  $: paXVisNodes.sort((a, b) => a.x - b.x);
   $: visObstacles = rootUp
     .descendants()
     .filter(
       (d) =>
-        !paXProgNodes.includes(d) &&
+        !paXVisNodes.includes(d) &&
         d.parent?.ancestors().some((a) => a.data.name === "PA-X"),
     );
   $: visPath = generateDiagonalProgPath(yCenter, paXVisNodes, visObstacles, 40);
@@ -431,47 +441,16 @@
     paperObstacles,
     40,
   );
-  // $: paXDBNodes = rootUp
-  //   .descendants()
-  //   .filter(
-  //     (d) =>
-  //       d.data.type === "db" &&
-  //       d.data.name !== "PA-X" &&
-  //       d
-  //         .ancestors()
-  //         .some((a) => a.data.name === "QC" && a.parent?.data.name === "Code"),
-  //   );
 
-  // $: paXDBNodes.sort((a, b) => a.x - b.x);
-
-  // function getSubtreeBounds(root, parentName, childType = null) {
-  //   const parent = root.descendants().find((d) => d.data.name === parentName);
-  //   if (!parent) return null;
-
-  //   // Get all descendants EXCLUDING the parent itself
-  //   let nodes = parent.descendants().filter((d) => d !== parent);
-
-  //   // If a childType is specified, only keep nodes matching that type
-  //   if (childType) {
-  //     nodes = nodes.filter((d) => d.data.type === childType);
-  //   }
-
-  //   if (!nodes.length) return null;
-
-  //   return {
-  //     minX: d3.min(nodes, (d) => d.x),
-  //     maxX: d3.max(nodes, (d) => d.x),
-  //     minY: d3.min(nodes, (d) => d.y),
-  //     maxY: d3.max(nodes, (d) => d.y),
-  //     nodes,
-  //   };
-  // }
-
-  // $: paXQCBounds = getSubtreeBounds(rootUp, "PA-X", "quality_control");
-  // $: paXCodeBounds = getSubtreeBounds(rootUp, "PA-X", "code");
-  // $: paXProgBounds = getSubtreeBounds(rootUp, "PA-X", "db");
-  // $: paXD3Bounds = getSubtreeBounds(rootUp, "PAA-X", "prog");
-  // $: paXPaperBounds = getSubtreeBounds(rootUp, "PA-X", "paper");
+  const labelConfig = new Map([
+    ["Collect", { x: 12 }],
+    ["Translate", { x: 20 }],
+    ["Transcribe", { x: 12 }],
+    ["PA-X QC", { x: 12 }],
+    ["PA-X", { x: 12 }],
+    ["Research", { x: 12 }],
+    ["PA-X Code", { x: 25 }],
+  ]);
 </script>
 
 <div id="wrapper" bind:clientWidth={width} bind:clientHeight={height}>
@@ -495,6 +474,7 @@
               {r.continent.replace("_", " ") + ` (${r.count})`}
             </text>
           {/each}
+
           <!-- downward links -->
           {#each visibleLinks as d}
             <path
@@ -511,18 +491,20 @@
           {/each}
 
           <!-- downward nodes -->
-          {#each visibleNodesDown as d}
+          {#each visibleNodesDown as d, i}
             <g transform={`translate(${d.x}, ${yCenter + d.y})`}>
-              <!-- <text
-                x={-8}
-                y={0}
-                font-size="8"
-                fill="gray"
-                transform={"rotate(-35)"}
-                text-anchor="end"
-              >
-                {d.data.name}
-              </text> -->
+              {#if i == 0 || i == 60 || i == 120}
+                <text
+                  x={-8}
+                  y={0}
+                  font-size="10"
+                  fill="white"
+                  transform={"rotate(35)"}
+                  text-anchor="end"
+                >
+                  {d.data.name.charAt(0).toUpperCase() + d.data.name.slice(1)}
+                </text>
+              {/if}
               <circle
                 cx="0"
                 cy="0"
@@ -544,128 +526,59 @@
           {/each}
 
           <!-- <path
-            d={paXProgNodes.length > 0
-              ? paXProgNodes
-                  .map(
-                    (d, i) => `${i === 0 ? "M" : "L"}${d.x},${yCenter - d.y}`,
-                  )
-                  .join(" ")
-              : ""}
-            fill="none"
-            stroke="steelblue"
-            stroke-width="1.5"
-            stroke-dasharray="4 2"
-          /> -->
-
-          <path
-            d={progPath}
-            fill="none"
-            stroke="steelblue"
-            stroke-width="30"
-            stroke-opacity="0.3"
-            stroke-linecap="round"
-          />
-
-          <path
             d={visPath}
             fill="none"
             stroke="white"
             stroke-width="30"
-            stroke-opacity="0.3"
+            stroke-opacity="0.2"
             stroke-linecap="round"
-          />
+          /> -->
 
-          <path
+          {#if currentLevelUp >= 6}
+            <path
+              d={progPath}
+              fill="none"
+              stroke="white"
+              stroke-width="30"
+              stroke-opacity="0.2"
+              stroke-linecap="round"
+            />
+
+            <path
+              d={codePath}
+              fill="none"
+              stroke="white"
+              stroke-width="30"
+              stroke-opacity="0.2"
+              stroke-linecap="round"
+            />
+          {/if}
+          <!--
+           <path
             d={dbPath}
             fill="none"
-            stroke="yellow"
+            stroke="white"
             stroke-width="30"
-            stroke-opacity="0.3"
+            stroke-opacity="0.2"
             stroke-linecap="round"
           />
 
           <path
             d={qcPath}
             fill="none"
-            stroke="red"
+            stroke="white"
             stroke-width="30"
-            stroke-opacity="0.3"
+            stroke-opacity="0.2"
             stroke-linecap="round"
           />
-
-          <path
-            d={codePath}
-            fill="none"
-            stroke="green"
-            stroke-width="30"
-            stroke-opacity="0.3"
-            stroke-linecap="round"
-          />
-
           <path
             d={paperPath}
             fill="none"
-            stroke="green"
+            stroke="white"
             stroke-width="30"
-            stroke-opacity="0.3"
+            stroke-opacity="0.2"
             stroke-linecap="round"
-          />
-          <!-- {#if paXQCBounds}
-            <rect
-              x={paXQCBounds.minX}
-              y={yCenter - paXQCBounds.maxY - 15}
-              width={paXQCBounds.maxX - paXQCBounds.minX}
-              height={paXQCBounds.maxY - paXQCBounds.minY + 30}
-              fill="steelblue"
-              fill-opacity="0.3"
-              pointer-events="none"
-            />
-          {/if}
-
-          {#if paXCodeBounds}
-            <rect
-              x={paXCodeBounds.minX}
-              y={yCenter - paXCodeBounds.maxY - 15}
-              width={paXCodeBounds.maxX - paXCodeBounds.minX}
-              height={paXCodeBounds.maxY - paXCodeBounds.minY + 30}
-              fill="red"
-              fill-opacity="0.3"
-              pointer-events="none"
-            />
-          {/if}
-          {#if paXProgBounds}
-            <rect
-              x={paXProgBounds.minX}
-              y={yCenter - paXProgBounds.maxY - 15}
-              width={paXProgBounds.maxX - paXProgBounds.minX}
-              height={paXProgBounds.maxY - paXProgBounds.minY + 30}
-              fill="yellow"
-              fill-opacity="0.3"
-              pointer-events="none"
-            />
-          {/if}
-          {#if paXD3Bounds}
-            <rect
-              x={paXD3Bounds.minX}
-              y={yCenter - paXD3Bounds.maxY - 15}
-              width={paXD3Bounds.maxX - paXD3Bounds.minX}
-              height={paXD3Bounds.maxY - paXD3Bounds.minY + 30}
-              fill="white"
-              fill-opacity="0.3"
-              pointer-events="none"
-            />
-          {/if}
-          {#if paXPaperBounds}
-            <rect
-              x={paXPaperBounds.minX}
-              y={yCenter - paXPaperBounds.maxY - 15}
-              width={paXPaperBounds.maxX - paXPaperBounds.minX}
-              height={paXPaperBounds.maxY - paXPaperBounds.minY + 30}
-              fill="green"
-              fill-opacity="0.3"
-              pointer-events="none"
-            />
-          {/if} -->
+          /> -->
 
           <!-- upward links -->
           {#each visibleLinksUp as d}
@@ -691,41 +604,17 @@
           <!-- upward nodes -->
           {#each visibleNodesUp as d}
             <g transform={`translate(${d.x}, ${yCenter - d.y})`}>
-              <!-- background circles -->
-              <!-- {#if d.data.type == "vis"}
-                <circle cx="0" cy="0" r="20" fill="white" fill-opacity="0.3"
-                ></circle>
-              {/if}
-              {#if d.data.type == "prog"}
-                <circle cx="0" cy="0" r="20" fill="gray" fill-opacity="0.3"
-                ></circle>
-              {/if}
-              {#if d.data.type == "db"}
-                <circle cx="0" cy="0" r="20" fill="black" fill-opacity="0.7"
-                ></circle>
-              {/if}
-              {#if d.data.type == "quality_control"}
-                <circle cx="0" cy="0" r="20" fill="yellow" fill-opacity="0.4"
-                ></circle>
-              {/if}
-              {#if d.data.type == "code"}
-                <circle cx="0" cy="0" r="20" fill="steelblue" fill-opacity="0.4"
-                ></circle>
-              {/if}
-              {#if d.data.type == "paper"}
-                <circle cx="0" cy="0" r="20" fill="red" fill-opacity="0.4"
-                ></circle>
-              {/if} -->
-
-              <!-- <text
-                  x={25}
-                  y={d.children ? 5 : -10}
-                  font-size="8"
+              {#if labelConfig.has(d.data.name)}
+                <text
+                  x={labelConfig.get(d.data.name).x}
+                  y={10}
+                  font-size="10"
                   fill="white"
-                  transform={"rotate(-35)"}
+                  transform="rotate(-35)"
                 >
-                 {d.data.name} 
-                </text> -->
+                  {d.data.name}
+                </text>
+              {/if}
 
               <!-- label -->
               {#if d.data.name == "Tracker"}

@@ -42,7 +42,7 @@ let original_data = {
                       link: "https://pax.peaceagreements.org/agreements/search/",
                       children: [
                         {
-                          name: "research",
+                          name: "Research",
                           branch_type: "uppest_trunk",
                           children: [
                             {
