@@ -331,7 +331,7 @@
   $: visibleNodesDown = nodesDown.filter((d) => d.level <= currentLevelDown);
 
   // Only show links from nodes whose level is <= currentLevel - 1
-  $: visibleLinks = linksDown.filter(
+  $: visibleLinksDown = linksDown.filter(
     (d) => d.parent && d.level <= currentLevelDown,
   );
 
@@ -346,29 +346,115 @@
     }
   }
 
-  $: console.log(currentLevelUp);
+  $: console.log(currentLevelUp, currentLevelDown);
 
-  // connecting same type nodes
-  // prog connections
-  $: paXProgNodes = rootUp
+  // remove first level connections
+  $: {
+    if (currentLevelUp === -1 && currentLevelDown === 1) {
+      d3.select("#step_description").html("Negotiation");
+    } else if (currentLevelUp === -1 && currentLevelDown === 2) {
+      d3.select("#step_description").html("Agreement");
+      d3.select("#step_description").style("top", "70%");
+    } else if (currentLevelUp === 0) {
+      d3.select("#step_description").html("Collection");
+    } else if (currentLevelUp === 1) {
+      d3.select("#step_description").html("Translation");
+      d3.select("#step_description").style("top", "60%");
+    } else if (currentLevelUp === 2) {
+      d3.select("#step_description").html("Transcription");
+    } else if (currentLevelUp === 3) {
+      d3.select("#step_description").html("Coding");
+      d3.select("#step_description").style("top", "50%");
+    } else if (currentLevelUp === 4) {
+      d3.select("#step_description").html("Quality Control");
+    } else if (currentLevelUp === 5) {
+      d3.select("#step_description").html("PA-X Database");
+      d3.select("#step_description").style("top", "40%");
+    } else if (currentLevelUp === 6) {
+      d3.select("#step_description").html(
+        "Research, Further Coding, Programming, Visualization",
+      );
+    } else if (currentLevelUp === 7) {
+      d3.select("#step_description").style("top", "20%");
+      d3.select("#step_description").html("Publications, QR and Visualization");
+      d3.select(".trackerCircle").remove();
+    } else if (currentLevelUp === 8) {
+      d3.select("#step_description").html("4 Additional Sub-Databases");
+    } else if (currentLevelUp === 9) {
+      d3.select("#step_description").style("top", "0%");
+      d3.select("#step_description").html(
+        "Further programming with additinoal databases, peaceFem, and visualization",
+      );
+      d3.select(".progPathFirst").remove();
+    } else if (currentLevelUp === 10) {
+      d3.select("#step_description").html("Further Visualizations");
+      d3.selectAll(".visPathFirst, .pbiCircle").remove();
+    }
+  }
+
+  ///////////////////////////// connecting same type nodes
+  // first layer of programming
+  $: paXProgNodesFirst = rootUp
     .descendants()
     .filter((d) => d.data.type === "prog" && d.parent.data.name == "PA-X");
-  $: console.log(paXProgNodes);
-
-  $: paXProgNodes.sort((a, b) => a.x - b.x);
-  $: obstacles = rootUp
+  $: paXProgNodesFirst.sort((a, b) => a.x - b.x);
+  $: obstaclesFirst = rootUp
     .descendants()
     .filter(
       (d) =>
-        !paXProgNodes.includes(d) &&
+        !paXProgNodesFirst.includes(d) &&
         d.parent?.ancestors().some((a) => a.data.name === "PA-X"),
     );
-  $: progPath = generateDiagonalProgPath(yCenter, paXProgNodes, obstacles, 40);
+  $: progPathFirst = generateDiagonalProgPath(
+    yCenter,
+    paXProgNodesFirst,
+    obstaclesFirst,
+    40,
+  );
 
-  // vis connections
-  $: paXVisNodes = rootUp
+  // prog connections all
+  $: paXProgNodesAll = rootUp
     .descendants()
-    .filter((d) => d.data.type === "vis" && d.data.name !== "PA-X");
+    .filter((d) => d.data.type === "prog");
+  $: paXProgNodesAll.sort((a, b) => a.x - b.x);
+  $: obstaclesAll = rootUp
+    .descendants()
+    .filter(
+      (d) =>
+        !paXProgNodesAll.includes(d) &&
+        d.parent?.ancestors().some((a) => a.data.name === "PA-X"),
+    );
+  $: progPathAll = generateDiagonalProgPath(
+    yCenter,
+    paXProgNodesAll,
+    obstaclesAll,
+    40,
+  );
+
+  // first level of vis
+  $: paXVisNodesFirst = rootUp
+    .descendants()
+    .filter((d) => d.data.type === "vis")
+    .sort((a, b) => a.x - b.x)
+    .slice(-5);
+
+  $: paXVisNodesFirst.sort((a, b) => a.x - b.x);
+  $: visObstaclesFirst = rootUp
+    .descendants()
+    .filter(
+      (d) =>
+        !paXVisNodesFirst.includes(d) &&
+        d.parent?.ancestors().some((a) => a.data.name === "PA-X"),
+    );
+  $: visPathFirst = generateDiagonalProgPath(
+    yCenter,
+    paXVisNodesFirst,
+    visObstaclesFirst,
+    40,
+  );
+
+  // vis connections all
+  $: paXVisNodes = rootUp.descendants().filter((d) => d.data.type === "vis");
   $: paXVisNodes.sort((a, b) => a.x - b.x);
   $: visObstacles = rootUp
     .descendants()
@@ -454,14 +540,55 @@
 </script>
 
 <div id="wrapper" bind:clientWidth={width} bind:clientHeight={height}>
+  <div id="step_description">Conflict Step Description</div>
   <div class="tree">
     <button id="reset" on:click={reset}>reset</button>
     <button id="next" on:click={nextStepHandler}>next</button>
 
     {#if width !== undefined || height !== undefined}
       <svg {width} {height}>
+        <!-- BACKGROUND TREE -->
         <g transform={`translate(${margin.right}, ${margin.top})`}>
-          <!-- region labels -->
+          {#each linksUp as d}
+            <path
+              d={`M${d.x},${yCenter - d.y}
+      C${d.x},${yCenter - d.parent.y - 20}
+       ${d.parent.x},${yCenter - d.parent.y - 50}
+       ${d.parent.x},${yCenter - d.parent.y}`}
+              fill="none"
+              stroke="#333333"
+              stroke-width={d.data.branch_type === "trunk"
+                ? 10
+                : d.data.branch_type === "upper_trunk"
+                  ? 7
+                  : d.data.branch_type === "uppest_trunk"
+                    ? 4
+                    : 1}
+            />
+          {/each}
+          {#each linksDown as d}
+            <path
+              d={`M${d.x},${yCenter + d.y} 
+       C${d.x},${yCenter + d.parent.y + 20} 
+        ${d.parent.x},${yCenter + d.parent.y + 20} 
+        ${d.parent.x},${yCenter + d.parent.y}`}
+              fill="none"
+              stroke="#333333"
+              stroke-width="1"
+            />
+          {/each}
+          {#each nodesUp as d}
+            <g transform={`translate(${d.x}, ${yCenter - d.y})`}>
+              <circle cx="0" cy="0" r="4.5" fill="#4d4d4d"></circle>
+            </g>
+          {/each}
+          {#each nodesDown as d, i}
+            <g transform={`translate(${d.x}, ${yCenter + d.y})`}>
+              <circle cx="0" cy="0" r="2" fill="#4d4d4d"></circle>
+            </g>
+          {/each}
+
+          <!-- continent labels -->
           {#each regionLabels as r}
             <text
               x={r.x}
@@ -475,8 +602,8 @@
             </text>
           {/each}
 
-          <!-- downward links -->
-          {#each visibleLinks as d}
+          <!-- downward gradual links -->
+          {#each visibleLinksDown as d}
             <path
               d={`M${d.x},${yCenter + d.y} 
        C${d.x},${yCenter + d.parent.y + 20} 
@@ -490,7 +617,7 @@
             />
           {/each}
 
-          <!-- downward nodes -->
+          <!-- downward gradual nodes -->
           {#each visibleNodesDown as d, i}
             <g transform={`translate(${d.x}, ${yCenter + d.y})`}>
               {#if i == 0 || i == 60 || i == 120}
@@ -508,8 +635,8 @@
               <circle
                 cx="0"
                 cy="0"
-                r="1"
-                fill="gray"
+                r="2"
+                fill="#a6a6a6"
                 tabindex="0"
                 role="button"
                 aria-label="Node details"
@@ -525,25 +652,16 @@
             </g>
           {/each}
 
-          <!-- <path
-            d={visPath}
-            fill="none"
-            stroke="white"
-            stroke-width="30"
-            stroke-opacity="0.2"
-            stroke-linecap="round"
-          /> -->
-
           {#if currentLevelUp >= 6}
             <path
-              d={progPath}
+              d={progPathFirst}
+              class="progPathFirst"
               fill="none"
               stroke="white"
               stroke-width="30"
               stroke-opacity="0.2"
               stroke-linecap="round"
             />
-
             <path
               d={codePath}
               fill="none"
@@ -553,32 +671,65 @@
               stroke-linecap="round"
             />
           {/if}
-          <!--
-           <path
-            d={dbPath}
-            fill="none"
-            stroke="white"
-            stroke-width="30"
-            stroke-opacity="0.2"
-            stroke-linecap="round"
-          />
 
-          <path
-            d={qcPath}
-            fill="none"
-            stroke="white"
-            stroke-width="30"
-            stroke-opacity="0.2"
-            stroke-linecap="round"
-          />
-          <path
-            d={paperPath}
-            fill="none"
-            stroke="white"
-            stroke-width="30"
-            stroke-opacity="0.2"
-            stroke-linecap="round"
-          /> -->
+          {#if currentLevelUp >= 7}
+            <path
+              d={qcPath}
+              fill="none"
+              stroke="white"
+              stroke-width="30"
+              stroke-opacity="0.2"
+              stroke-linecap="round"
+            />
+            <path
+              d={paperPath}
+              fill="none"
+              stroke="white"
+              stroke-width="30"
+              stroke-opacity="0.2"
+              stroke-linecap="round"
+            />
+            <path
+              d={visPathFirst}
+              class="visPathFirst"
+              fill="none"
+              stroke="white"
+              stroke-width="30"
+              stroke-opacity="0.2"
+              stroke-linecap="round"
+            />
+          {/if}
+
+          {#if currentLevelUp >= 8}
+            <path
+              d={dbPath}
+              fill="none"
+              stroke="white"
+              stroke-width="30"
+              stroke-opacity="0.2"
+              stroke-linecap="round"
+            />
+          {/if}
+          {#if currentLevelUp >= 9}
+            <path
+              d={progPathAll}
+              fill="none"
+              stroke="white"
+              stroke-width="30"
+              stroke-opacity="0.2"
+              stroke-linecap="round"
+            />
+          {/if}
+          {#if currentLevelUp >= 10}
+            <path
+              d={visPath}
+              fill="none"
+              stroke="white"
+              stroke-width="30"
+              stroke-opacity="0.2"
+              stroke-linecap="round"
+            />
+          {/if}
 
           <!-- upward links -->
           {#each visibleLinksUp as d}
@@ -683,13 +834,24 @@
                   Publications
                 </text>
               {/if}
+              {#if d.data.label == "Infographics"}
+                <text
+                  x={20}
+                  y={5}
+                  font-size="10"
+                  fill="white"
+                  transform={"rotate(-35)"}
+                >
+                  Infographics
+                </text>
+              {/if}
 
               <!-- main circle -->
               <circle
                 cx="0"
                 cy="0"
                 r="4.5"
-                fill="#999999"
+                fill="#a6a6a6"
                 tabindex="0"
                 role="button"
                 aria-label="Node details"
@@ -703,6 +865,7 @@
                 }}
               ></circle>
 
+              <!-- people circles -->
               {#each Array(d.data.ppl) as _, i}
                 <circle
                   cx={(orbitRadius + ringGap * Math.floor(i / 12)) *
@@ -713,6 +876,35 @@
                   fill="white"
                 />
               {/each}
+
+              {#if d.data.name == "Research"}
+                <circle cx="0" cy="0" r="15" fill="white" opacity="0.2"
+                ></circle>
+              {/if}
+              {#if d.data.name == "Tracker"}
+                <circle
+                  class="trackerCircle"
+                  cx="0"
+                  cy="0"
+                  r="15"
+                  fill="white"
+                  opacity="0.2"
+                ></circle>
+              {/if}
+              {#if d.data.name == "Infographics"}
+                <circle cx="0" cy="0" r="15" fill="white" opacity="0.2"
+                ></circle>
+              {/if}
+              {#if d.data.name == "PBi"}
+                <circle
+                  class="pbiCircle"
+                  cx="0"
+                  cy="0"
+                  r="15"
+                  fill="white"
+                  opacity="0.2"
+                ></circle>
+              {/if}
             </g>
           {/each}
         </g>
@@ -821,6 +1013,18 @@
   .tree {
     width: 70%;
     height: 100vh;
+  }
+  #step_description {
+    position: absolute;
+    top: 80%;
+    left: 50%;
+    transform: translateX(-50%);
+    color: rgb(0, 0, 0);
+    font-size: 14px;
+    background-color: rgb(255, 255, 255);
+    padding: 5px 10px;
+    border-radius: 5px;
+    z-index: 10;
   }
   .overview {
     width: 30%;

@@ -1,0 +1,74 @@
+{
+  "workflow": [
+    {
+      "step_id": "1",
+      "type": "conflicts",
+      "description": ""
+    },
+    {
+      "step_id": "2",
+      "type": "negotiations",
+      "description": ""
+    },
+    {
+      "step_id": "3",
+      "type": "peace_agreements",
+      "description": ""
+    },
+    {
+      "step_id": "4",
+      "type": "collection",
+      "description": ""
+    },
+    {
+      "step_id": "5",
+      "type": "translation",
+      "description": ""
+    },
+    {
+      "step_id": "6",
+      "type": "transcription",
+      "description": ""
+    },
+    {
+      "step_id": "7",
+      "type": "pax_coding",
+      "description": ""
+    },
+    {
+      "step_id": "8",
+      "type": "pax_quality_control",
+      "description": ""
+    },
+    {
+      "step_id": "9",
+      "type": "pax_database",
+      "description": ""
+    },
+    {
+      "step_id": "10",
+      "type": "research/further_coding/d3_programming/tracker_visualization/infographics",
+      "description": ""
+    },
+    {
+      "step_id": "11",
+      "type": "publications/further_quality_control/visualization",
+      "description": ""
+    },
+    {
+      "step_id": "12",
+      "type": "sub_databases",
+      "description": ""
+    },
+    {
+      "step_id": "13",
+      "type": "d3_programming/peacefem_app/visualization",
+      "description": ""
+    },
+    {
+      "step_id": "14",
+      "type": "visualization",
+      "description": ""
+    }
+  ]
+}

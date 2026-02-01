@@ -310,6 +310,7 @@ let original_data = {
                         },
                         {
                           name: "Infographics",
+                          label: "Infographics",
                           type: "pdf",
                           ppl: 3,
                         },
