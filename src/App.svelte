@@ -1,12 +1,21 @@
 <script>
   import * as d3 from "d3";
-  import { data, generateDiagonalProgPath } from "./utils";
+  import {
+    data,
+    generateDiagonalProgPath,
+    steps,
+    groupDownwardByContinent,
+    alignBranchToX,
+    setUniformY,
+  } from "./utils";
 
-  // todo
+  // TODO
   // add external datasets at least acled and ucdp
 
   let width,
     height,
+    orbitRadius = 8,
+    ringGap = 4,
     details_width = 1,
     details_data = [],
     clicked = null,
@@ -15,15 +24,6 @@
     linksUp = [],
     nodesDown = [],
     linksDown = [];
-
-  const lineGenerator = d3
-    .line()
-    .x((d) => d[0])
-    .y((d) => d[1])
-    .curve(d3.curveMonotoneX);
-
-  const orbitRadius = 8;
-  const ringGap = 4;
 
   $: innerWidth = width - margin.right - margin.left;
   $: innerHeight = height - margin.top - margin.bottom;
@@ -40,15 +40,20 @@
   );
   $: upwardCluster = d3.cluster().size([innerWidth, upHeight]);
   $: downwardCluster = d3.cluster().size([innerWidth, downHeight]);
+  $: regionLabels = (() => {
+    if (!rootDown.children) return [];
+    const groups = d3.group(
+      rootDown.children,
+      (d) => d.data.continent ?? "Unknown",
+    );
 
-  // position downward tree
-  function setUniformY(node, spacing) {
-    if (!node.children) return;
-    node.children.forEach((child) => {
-      child.y = node.y + spacing; // child one level below parent
-      setUniformY(child, spacing); // recurse
-    });
-  }
+    return Array.from(groups, ([continent, nodes]) => ({
+      continent,
+      count: nodes[0]?.data.number ?? nodes.length, // true count
+      x: d3.mean(nodes, (d) => d.x),
+      y: yCenter + downHeight,
+    }));
+  })();
 
   // positioning of the upward tree node positions
   const defaultWeightUp = 1;
@@ -71,93 +76,26 @@
     });
   }
 
-  function groupDownwardByContinent(
-    root,
-    innerWidth,
-    {
-      nodeSpacing = 10,
-      continentGap = 80, // used only for minimum spacing
-    } = {},
-  ) {
-    if (!root.children || root.children.length === 0) return;
-
-    // ---- group top-level subtrees by continent (stable order)
-    const groups = Array.from(
-      d3.group(root.children, (d) => d.data.continent ?? "Unknown"),
-      ([continent, nodes]) => ({
-        continent,
-        nodes,
-        width: nodes.length > 1 ? (nodes.length - 1) * nodeSpacing : 0,
-      }),
-    );
-
-    // ---- compute total natural width
-    const totalNaturalWidth =
-      d3.sum(groups, (g) => g.width) + continentGap * (groups.length - 1);
-
-    // ---- scale natural layout to screen
-    const scale = totalNaturalWidth > 0 ? innerWidth / totalNaturalWidth : 1;
-
-    let cursor = 0;
-
-    groups.forEach((group) => {
-      // center of this continent in screen space
-      const groupCenter = (cursor + group.width / 2) * scale;
-
-      group.nodes.forEach((subRoot, i) => {
-        const localOffset = (i * nodeSpacing - group.width / 2) * scale;
-        const targetX = groupCenter + localOffset;
-        const dx = targetX - subRoot.x;
-
-        subRoot.each((node) => {
-          node.x += dx;
-        });
-      });
-
-      cursor += group.width + continentGap;
-    });
+  // remove some negotiation and agreement nodes
+  function pickRandom(nodes, count) {
+    return new Set(d3.shuffle(nodes.slice()).slice(0, count));
   }
 
-  $: regionLabels = (() => {
-    if (!rootDown.children) return [];
-
-    const groups = d3.group(
-      rootDown.children,
-      (d) => d.data.continent ?? "Unknown",
-    );
-
-    return Array.from(groups, ([continent, nodes]) => ({
-      continent,
-      count: nodes[0]?.data.number ?? nodes.length, // true count
-      x: d3.mean(nodes, (d) => d.x),
-      y: yCenter + downHeight,
-    }));
-  })();
-
-  function alignBranchToX(root, sourceName, targetName, stopAtName = null) {
-    const source = root.descendants().find((d) => d.data.name === sourceName);
-    const target = root.descendants().find((d) => d.data.name === targetName);
-
-    if (!source || !target) return;
-
-    const targetX = target.x;
-    let node = source;
-
-    while (node) {
-      node.x = targetX;
-
-      if (stopAtName && node.data.name === stopAtName) break;
-      node = node.parent;
+  function isInRemovedSubtree(node, removedSet) {
+    let current = node;
+    while (current) {
+      if (removedSet.has(current)) return true;
+      current = current.parent;
     }
+    return false;
   }
 
   $: {
     upwardCluster(rootUp);
     downwardCluster(rootDown);
 
-    // align specific branches
-    alignBranchToX(rootUp, "PA-X Gender", "PeaceFem");
-    alignBranchToX(rootUp, "PAA-X", "VUE");
+    // posittion pax subdatabases to the centre
+    alignBranchToX(rootUp, "PA-X Local", "VUE");
 
     // center upward and downward tree on "Collect" node
     const collectNode = rootUp
@@ -175,11 +113,51 @@
     const unitHeight = upHeight / totalWeight;
     setResponsiveY(rootUp, unitHeight);
 
+    // shifting research and d3 subtree to the top level
+    function shiftSubtree(node, delta) {
+      node.y += delta;
+      if (node.children) {
+        node.children.forEach((child) => shiftSubtree(child, delta));
+      }
+    }
+    const paaXD3Node = rootUp
+      .descendants()
+      .find((d) => d.data.name === "d3" && d.parent?.data?.name === "PAA-X");
+
+    if (paaXD3Node) {
+      const targetY = paaXD3Node.y;
+      rootUp.descendants().forEach((d) => {
+        if (
+          d.data.name === "Research" ||
+          (d.data.name === "d3" && d.parent?.data?.name === "PA-X") ||
+          (d.data.name === "Tracker" && d.parent?.data?.name === "PA-X") ||
+          (d.data.name === "Infographics" && d.parent?.data?.name === "PA-X")
+        ) {
+          const delta = targetY - d.y;
+          shiftSubtree(d, delta);
+        }
+      });
+    }
+
+    // position peacefem and youth to the top level
+    let peacefem = rootUp.descendants().find((d) => d.data.name === "PeaceFem");
+    let tracker = rootUp.descendants().find((d) => d.data.name === "Tracker");
+    let infographics = rootUp
+      .descendants()
+      .find((d) => d.data.name === "Infographics");
+    let gender = rootUp
+      .descendants()
+      .find((d) => d.data.name === "Scrollytelling");
+    let youth = rootUp.descendants().find((d) => d.data.name === "PBi Youth");
+    peacefem.y = gender.y;
+    youth.y = gender.y;
+    tracker.y = gender.y;
+    infographics.y = gender.y;
+    infographics.x += 20;
+
     // positioning of the downward tree nodes
     const spacingDown = downHeight / (rootDown.height + 0.8);
     setUniformY(rootDown, spacingDown);
-
-    // spacing for downward nodes based on continents
     groupDownwardByContinent(rootDown, innerWidth, {
       nodeSpacing: 10,
       continentGap: 80,
@@ -190,40 +168,30 @@
 
     nodesDown = rootDown.descendants().slice(1);
     linksDown = nodesDown.filter((d) => d.parent);
+
+    // remove some nodes from downward tree
+    const allNodesDown = rootDown.descendants().slice(1);
+    const allLinksDown = allNodesDown.filter((d) => d.parent);
+    // agreement-level nodes
+    const agreementNodes = allNodesDown.filter((d) => d.depth === 1);
+    const removedAgreements = pickRandom(agreementNodes, 20);
+
+    // filter nodes
+    nodesDown = allNodesDown.filter((d) => {
+      // always keep conflict nodes
+      if (d.data.name === "conflict") return true;
+      // otherwise remove if in removed agreement subtree
+      return !isInRemovedSubtree(d, removedAgreements);
+    });
+
+    // filter links
+    linksDown = allLinksDown.filter((d) => {
+      // keep links *to* conflict nodes
+      if (d.data.name === "conflict") return true;
+      // otherwise same pruning rule
+      return !isInRemovedSubtree(d, removedAgreements);
+    });
   }
-
-  // function removeNodesAndPrune(node, targetNames) {
-  //   if (!node.children) return { ...node };
-
-  //   const newChildren = [];
-
-  //   for (const child of node.children) {
-  //     // If this child should be removed, skip it
-  //     if (targetNames.has(child.name)) continue;
-
-  //     // Recursively process the child
-  //     const updatedChild = removeNodesAndPrune(child, targetNames);
-
-  //     // Keep it if not pruned
-  //     if (updatedChild) newChildren.push(updatedChild);
-  //   }
-
-  //   // If all children were removed and at least one was a target, prune this node
-  //   const hadTargetChild = node.children.some((c) => targetNames.has(c.name));
-  //   if (newChildren.length === 0 && hadTargetChild) {
-  //     return null;
-  //   }
-
-  //   return {
-  //     ...node,
-  //     children: newChildren.length > 0 ? newChildren : undefined,
-  //   };
-  // }
-
-  // function filter() {
-  //   const targets = new Set(["Scrollytelling", "Tracker", "Network"]);
-  //   data = removeNodesAndPrune(data, targets);
-  // }
 
   //////////////////////////////// reset to default //////////////////////////
   function reset() {
@@ -300,39 +268,51 @@
   }
 
   /////////////////////////////// gradual reveal logic //////////////////////
+  // revel doesn't work fir the agreement -> collection FIX !!!
+  function downRevealLevel(d) {
+    switch (d.data.name) {
+      case "agreement":
+        return 0;
+      case "negotiation":
+        return 1;
+      case "conflict":
+        return 2;
+      default:
+        return 0;
+    }
+  }
   let currentLevelDown = 0;
   let currentLevelUp = -1;
   let segment_height;
+
   // levels for downward nodes
-  $: nodesDown.forEach((node) => {
-    node.level =
-      node.children && node.children.length
-        ? Math.max(...node.children.map((c) => c.level ?? 0)) + 1
-        : 0;
+  $: nodesDown.forEach((d) => {
+    d.revealLevel = downRevealLevel(d);
   });
 
   $: maxHeightUp = Math.max(...nodesUp.map((d) => d.height));
-  $: maxHeightDown = Math.max(...nodesDown.map((d) => d.level));
-
+  $: maxHeightDown = Math.max(...nodesDown.map((d) => d.revealLevel));
   $: currentHeightUp = currentLevelUp >= 0 ? currentLevelUp : null;
 
   // tree up
   $: visibleNodesUp =
     currentHeightUp !== null
-      ? nodesUp.filter((d) => d.depth <= currentHeightUp)
+      ? nodesUp.filter((d) => d.data.step <= currentHeightUp)
       : [];
-
   $: visibleLinksUp =
     currentHeightUp !== null
-      ? linksUp.filter((d) => d.parent && d.depth <= currentHeightUp)
+      ? linksUp.filter((d) => d.parent && d.data.step <= currentHeightUp)
       : [];
 
   // tree down
-  $: visibleNodesDown = nodesDown.filter((d) => d.level <= currentLevelDown);
-
-  // Only show links from nodes whose level is <= currentLevel - 1
+  $: visibleNodesDown = nodesDown.filter(
+    (d) => d.revealLevel >= maxHeightDown - currentLevelDown,
+  );
   $: visibleLinksDown = linksDown.filter(
-    (d) => d.parent && d.level <= currentLevelDown,
+    (d) =>
+      d.parent &&
+      d.revealLevel >= maxHeightDown - currentLevelDown &&
+      d.parent.revealLevel >= maxHeightDown - currentLevelDown,
   );
 
   // next step handler
@@ -340,121 +320,111 @@
     if (currentLevelDown < maxHeightDown) {
       currentLevelDown += 1;
     } else {
-      if (currentLevelUp < maxHeightUp) {
-        currentLevelUp += 1;
-      }
+      currentLevelUp += 1;
     }
   }
-
-  $: console.log(currentLevelUp, currentLevelDown);
 
   // remove first level connections
   $: {
     if (currentLevelUp === -1 && currentLevelDown === 1) {
-      d3.select("#step_description").html("Negotiation");
+      d3.select("#step_description").html(steps.workflow[1].description);
+      d3.select("#step_description").style("top", "65%");
     } else if (currentLevelUp === -1 && currentLevelDown === 2) {
-      d3.select("#step_description").html("Agreement");
-      d3.select("#step_description").style("top", "70%");
-    } else if (currentLevelUp === 0) {
-      d3.select("#step_description").html("Collection");
-    } else if (currentLevelUp === 1) {
-      d3.select("#step_description").html("Translation");
+      d3.select("#step_description").html(steps.workflow[2].description);
       d3.select("#step_description").style("top", "60%");
-    } else if (currentLevelUp === 2) {
-      d3.select("#step_description").html("Transcription");
-    } else if (currentLevelUp === 3) {
-      d3.select("#step_description").html("Coding");
+    } else if (currentLevelUp === 0) {
+      d3.select("#step_description").html(steps.workflow[3].description);
+      d3.select("#step_description").style("top", "55%");
+    } else if (currentLevelUp === 1) {
+      d3.select("#step_description").html(steps.workflow[4].description);
       d3.select("#step_description").style("top", "50%");
-    } else if (currentLevelUp === 4) {
-      d3.select("#step_description").html("Quality Control");
-    } else if (currentLevelUp === 5) {
-      d3.select("#step_description").html("PA-X Database");
+    } else if (currentLevelUp === 2) {
+      d3.select("#step_description").html(steps.workflow[5].description);
+      d3.select("#step_description").style("top", "45%");
+    } else if (currentLevelUp === 3) {
+      d3.select("#step_description").html(steps.workflow[6].description);
       d3.select("#step_description").style("top", "40%");
+    } else if (currentLevelUp === 4) {
+      d3.select("#step_description").html(steps.workflow[7].description);
+      d3.select("#step_description").style("top", "35%");
+    } else if (currentLevelUp === 5) {
+      d3.select("#step_description").html(steps.workflow[8].description);
+      d3.select("#step_description").style("top", "30%");
     } else if (currentLevelUp === 6) {
-      d3.select("#step_description").html(
-        "Research, Further Coding, Programming, Visualization",
-      );
+      d3.select("#step_description").html(steps.workflow[9].description);
+      d3.select("#step_description").style("top", "25%");
     } else if (currentLevelUp === 7) {
       d3.select("#step_description").style("top", "20%");
-      d3.select("#step_description").html("Publications, QR and Visualization");
+      d3.select("#step_description").html(steps.workflow[10].description);
       d3.select(".trackerCircle").remove();
     } else if (currentLevelUp === 8) {
-      d3.select("#step_description").html("4 Additional Sub-Databases");
+      d3.select("#step_description").style("top", "15%");
+      d3.select("#step_description").html(steps.workflow[11].description);
     } else if (currentLevelUp === 9) {
-      d3.select("#step_description").style("top", "0%");
-      d3.select("#step_description").html(
-        "Further programming with additinoal databases, peaceFem, and visualization",
-      );
+      d3.select("#step_description").style("top", "10%");
+      d3.select("#step_description").html(steps.workflow[12].description);
       d3.select(".progPathFirst").remove();
     } else if (currentLevelUp === 10) {
-      d3.select("#step_description").html("Further Visualizations");
+      d3.select("#step_description").style("top", "2%");
+      d3.select("#step_description").html(steps.workflow[13].description);
       d3.selectAll(".visPathFirst, .pbiCircle").remove();
     }
   }
 
   ///////////////////////////// connecting same type nodes
   // first layer of programming
-  $: paXProgNodesFirst = rootUp
+  $: paXProgFirst = rootUp
     .descendants()
-    .filter((d) => d.data.type === "prog" && d.parent.data.name == "PA-X");
-  $: paXProgNodesFirst.sort((a, b) => a.x - b.x);
-  $: obstaclesFirst = rootUp
+    .filter((d) => d.data.type === "prog" && d.parent.data.name !== "PA-X");
+  $: paXProgFirst.sort((a, b) => a.x - b.x);
+  $: obstaclesProgFirst = rootUp
     .descendants()
     .filter(
       (d) =>
-        !paXProgNodesFirst.includes(d) &&
+        !paXProgFirst.includes(d) &&
         d.parent?.ancestors().some((a) => a.data.name === "PA-X"),
     );
   $: progPathFirst = generateDiagonalProgPath(
     yCenter,
-    paXProgNodesFirst,
-    obstaclesFirst,
+    paXProgFirst,
+    obstaclesProgFirst,
     40,
   );
 
-  // prog connections all
-  $: paXProgNodesAll = rootUp
+  // second layer of programming
+  $: paXProgSecond = rootUp
     .descendants()
-    .filter((d) => d.data.type === "prog");
-  $: paXProgNodesAll.sort((a, b) => a.x - b.x);
-  $: obstaclesAll = rootUp
+    .filter((d) => d.data.type === "prog" && d.parent.data.name == "PA-X");
+  $: paXProgSecond.sort((a, b) => a.x - b.x);
+  $: obstaclesProgSecond = rootUp
     .descendants()
     .filter(
       (d) =>
-        !paXProgNodesAll.includes(d) &&
+        !paXProgSecond.includes(d) &&
         d.parent?.ancestors().some((a) => a.data.name === "PA-X"),
     );
-  $: progPathAll = generateDiagonalProgPath(
+  $: progPathSecond = generateDiagonalProgPath(
     yCenter,
-    paXProgNodesAll,
-    obstaclesAll,
+    paXProgSecond,
+    obstaclesProgSecond,
     40,
   );
 
-  // first level of vis
-  $: paXVisNodesFirst = rootUp
-    .descendants()
-    .filter((d) => d.data.type === "vis")
-    .sort((a, b) => a.x - b.x)
-    .slice(-5);
+  // first layer of vis connections
+  $: paXVisNodes = rootUp.descendants().filter((d) => {
+    if (d.data.type !== "vis") return false;
+    const parent = d.parent;
+    const grandparent = d.parent?.parent;
+    // exclude nodes if parent or grandparent name is "PA-X"
+    if (
+      (parent && parent.data.name === "PA-X") ||
+      (grandparent && grandparent.data.name === "PA-X")
+    ) {
+      return false;
+    }
 
-  $: paXVisNodesFirst.sort((a, b) => a.x - b.x);
-  $: visObstaclesFirst = rootUp
-    .descendants()
-    .filter(
-      (d) =>
-        !paXVisNodesFirst.includes(d) &&
-        d.parent?.ancestors().some((a) => a.data.name === "PA-X"),
-    );
-  $: visPathFirst = generateDiagonalProgPath(
-    yCenter,
-    paXVisNodesFirst,
-    visObstaclesFirst,
-    40,
-  );
-
-  // vis connections all
-  $: paXVisNodes = rootUp.descendants().filter((d) => d.data.type === "vis");
+    return true;
+  });
   $: paXVisNodes.sort((a, b) => a.x - b.x);
   $: visObstacles = rootUp
     .descendants()
@@ -463,7 +433,38 @@
         !paXVisNodes.includes(d) &&
         d.parent?.ancestors().some((a) => a.data.name === "PA-X"),
     );
-  $: visPath = generateDiagonalProgPath(yCenter, paXVisNodes, visObstacles, 40);
+  $: visPathFirst = generateDiagonalProgPath(
+    yCenter,
+    paXVisNodes,
+    visObstacles,
+    40,
+  );
+
+  // second level of vis
+  $: paXVisNodesSecond = rootUp
+    .descendants()
+    .filter(
+      (d) =>
+        d.data.type === "vis" &&
+        d.parent?.data?.name === "d3" &&
+        d.parent?.parent?.data?.name === "PA-X",
+    )
+    .sort((a, b) => a.x - b.x)
+    .slice(-5);
+  $: paXVisNodesSecond.sort((a, b) => a.x - b.x);
+  $: visObstaclesSecond = rootUp
+    .descendants()
+    .filter(
+      (d) =>
+        !paXVisNodesSecond.includes(d) &&
+        d.parent?.ancestors().some((a) => a.data.name === "PA-X"),
+    );
+  $: visPathSecond = generateDiagonalProgPath(
+    yCenter,
+    paXVisNodesSecond,
+    visObstaclesSecond,
+    40,
+  );
 
   // db connections
   $: paXDBNodes = rootUp
@@ -537,26 +538,85 @@
     ["Research", { x: 12 }],
     ["PA-X Code", { x: 25 }],
   ]);
+
+  $: firstNodeByLevelDown = new Map();
+
+  $: {
+    firstNodeByLevelDown.clear();
+    for (const d of visibleNodesDown) {
+      if (!firstNodeByLevelDown.has(d.revealLevel)) {
+        firstNodeByLevelDown.set(d.revealLevel, d);
+      }
+    }
+  }
+
+  $: console.log(currentLevelUp);
 </script>
 
 <div id="wrapper" bind:clientWidth={width} bind:clientHeight={height}>
-  <div id="step_description">Conflict Step Description</div>
+  <!-- <div id="step_description">{steps.workflow[0].description}</div> -->
   <div class="tree">
     <button id="reset" on:click={reset}>reset</button>
     <button id="next" on:click={nextStepHandler}>next</button>
 
     {#if width !== undefined || height !== undefined}
       <svg {width} {height}>
+        <!-- textures -->
+        <defs>
+          <pattern
+            id="diagonalHatch"
+            patternUnits="userSpaceOnUse"
+            width="8"
+            height="8"
+            patternTransform="rotate(45)"
+          >
+            <line x1="0" y1="0" x2="0" y2="8" stroke="white" stroke-width="2" />
+          </pattern>
+          <pattern
+            id="tex-cross"
+            patternUnits="userSpaceOnUse"
+            width="8"
+            height="8"
+          >
+            <line
+              x1="0"
+              y1="0"
+              x2="0"
+              y2="8"
+              stroke="white"
+              stroke-width="1.5"
+            />
+            <line
+              x1="0"
+              y1="0"
+              x2="8"
+              y2="0"
+              stroke="white"
+              stroke-width="1.5"
+            />
+          </pattern>
+          <pattern
+            id="tex-dots"
+            patternUnits="userSpaceOnUse"
+            width="10"
+            height="10"
+          >
+            <circle cx="5" cy="5" r="2" fill="white" />
+          </pattern>
+        </defs>
         <!-- BACKGROUND TREE -->
         <g transform={`translate(${margin.right}, ${margin.top})`}>
-          {#each linksUp as d}
+          <!-- {#each linksUp as d}
             <path
               d={`M${d.x},${yCenter - d.y}
       C${d.x},${yCenter - d.parent.y - 20}
        ${d.parent.x},${yCenter - d.parent.y - 50}
        ${d.parent.x},${yCenter - d.parent.y}`}
               fill="none"
-              stroke="#333333"
+              stroke={d.data.branch_type === "upper_trunk" ||
+              d.data.branch_type === "trunk"
+                ? "#333333"
+                : "#333333"}
               stroke-width={d.data.branch_type === "trunk"
                 ? 10
                 : d.data.branch_type === "upper_trunk"
@@ -565,7 +625,7 @@
                     ? 4
                     : 1}
             />
-          {/each}
+          {/each} -->
           {#each linksDown as d}
             <path
               d={`M${d.x},${yCenter + d.y} 
@@ -611,8 +671,8 @@
         ${d.parent.x},${yCenter + d.parent.y}`}
               fill="none"
               stroke={highlightedLinks.has(`${d.parent.data.id}→${d.data.id}`)
-                ? "orange"
-                : "#595959"}
+                ? "gray"
+                : "#333333"}
               stroke-width="1"
             />
           {/each}
@@ -620,13 +680,13 @@
           <!-- downward gradual nodes -->
           {#each visibleNodesDown as d, i}
             <g transform={`translate(${d.x}, ${yCenter + d.y})`}>
-              {#if i == 0 || i == 60 || i == 120}
+              {#if firstNodeByLevelDown.get(d.revealLevel) === d}
                 <text
                   x={-8}
                   y={0}
                   font-size="10"
                   fill="white"
-                  transform={"rotate(35)"}
+                  transform="rotate(35)"
                   text-anchor="end"
                 >
                   {d.data.name.charAt(0).toUpperCase() + d.data.name.slice(1)}
@@ -654,33 +714,35 @@
 
           {#if currentLevelUp >= 6}
             <path
-              d={progPathFirst}
-              class="progPathFirst"
-              fill="none"
-              stroke="white"
-              stroke-width="30"
-              stroke-opacity="0.2"
-              stroke-linecap="round"
-            />
-            <path
               d={codePath}
               fill="none"
-              stroke="white"
+              stroke="url(#tex-cross)"
               stroke-width="30"
               stroke-opacity="0.2"
               stroke-linecap="round"
             />
           {/if}
-
           {#if currentLevelUp >= 7}
             <path
               d={qcPath}
               fill="none"
-              stroke="white"
+              stroke="url(#tex-dots)"
               stroke-width="30"
               stroke-opacity="0.2"
               stroke-linecap="round"
             />
+          {/if}
+          {#if currentLevelUp >= 8}
+            <path
+              d={dbPath}
+              fill="none"
+              stroke="url(#diagonalHatch)"
+              stroke-width="30"
+              stroke-opacity="0.4"
+              stroke-linecap="round"
+            />
+          {/if}
+          {#if currentLevelUp >= 10}
             <path
               d={paperPath}
               fill="none"
@@ -689,9 +751,20 @@
               stroke-opacity="0.2"
               stroke-linecap="round"
             />
+          {/if}
+          {#if currentLevelUp >= 11}
+            <path
+              d={progPathFirst}
+              fill="none"
+              stroke="white"
+              stroke-width="30"
+              stroke-opacity="0.2"
+              stroke-linecap="round"
+            />
+          {/if}
+          {#if currentLevelUp >= 12}
             <path
               d={visPathFirst}
-              class="visPathFirst"
               fill="none"
               stroke="white"
               stroke-width="30"
@@ -699,10 +772,9 @@
               stroke-linecap="round"
             />
           {/if}
-
-          {#if currentLevelUp >= 8}
+          {#if currentLevelUp >= 13}
             <path
-              d={dbPath}
+              d={progPathSecond}
               fill="none"
               stroke="white"
               stroke-width="30"
@@ -710,19 +782,9 @@
               stroke-linecap="round"
             />
           {/if}
-          {#if currentLevelUp >= 9}
+          {#if currentLevelUp >= 14}
             <path
-              d={progPathAll}
-              fill="none"
-              stroke="white"
-              stroke-width="30"
-              stroke-opacity="0.2"
-              stroke-linecap="round"
-            />
-          {/if}
-          {#if currentLevelUp >= 10}
-            <path
-              d={visPath}
+              d={visPathSecond}
               fill="none"
               stroke="white"
               stroke-width="30"
@@ -734,14 +796,53 @@
           <!-- upward links -->
           {#each visibleLinksUp as d}
             <path
-              d={`M${d.x},${yCenter - d.y}
-      C${d.x},${yCenter - d.parent.y - 20}
-       ${d.parent.x},${yCenter - d.parent.y - 50}
-       ${d.parent.x},${yCenter - d.parent.y}`}
+              d={d.data.name === "Research"
+                ? (() => {
+                    const offset = Math.min(
+                      50,
+                      (yCenter - d.y - (yCenter - d.parent.y)) * 0.3,
+                    );
+                    const control = offset * 0.3;
+
+                    return `M${d.x},${yCenter - d.y}
+                            L${d.x},${yCenter - d.parent.y + offset}
+                            C${d.x},${yCenter - d.parent.y + control}
+                             ${d.parent.x},${yCenter - d.parent.y + control}
+                             ${d.parent.x},${yCenter - d.parent.y}`;
+                  })()
+                : (d.data.name === "d3" && d.parent.data.name === "PA-X") ||
+                    d.data.name === "Tracker" ||
+                    d.data.name === "Infographics"
+                  ? (() => {
+                      const baseOffset = Math.min(
+                        50,
+                        (yCenter - d.y - (yCenter - d.parent.y)) * 0.3,
+                      );
+
+                      // push corner DOWN for Tracker / Infographics
+                      const extraDown =
+                        d.data.name === "Tracker" ||
+                        d.data.name === "Infographics"
+                          ? 20
+                          : 0;
+
+                      const offset = baseOffset + extraDown;
+                      const control = offset * 0.3;
+
+                      return `M${d.x},${yCenter - d.y}
+            L${d.x},${yCenter - d.parent.y + offset}
+            C${d.x},${yCenter - d.parent.y + control}
+             ${d.parent.x},${yCenter - d.parent.y + control}
+             ${d.parent.x},${yCenter - d.parent.y}`;
+                    })()
+                  : `M${d.x},${yCenter - d.y}
+                   C${d.x},${yCenter - d.parent.y - 20}
+                    ${d.parent.x},${yCenter - d.parent.y - 50}
+                    ${d.parent.x},${yCenter - d.parent.y}`}
               fill="none"
               stroke={highlightedLinks.has(`${d.parent.data.id}→${d.data.id}`)
-                ? "orange"
-                : "#595959"}
+                ? "gray"
+                : "#333333"}
               stroke-width={d.data.branch_type === "trunk"
                 ? 10
                 : d.data.branch_type === "upper_trunk"
@@ -769,6 +870,28 @@
 
               <!-- label -->
               {#if d.data.name == "Tracker"}
+                <text
+                  x={20}
+                  y={5}
+                  font-size="10"
+                  fill="white"
+                  transform={"rotate(-35)"}
+                >
+                  Visualization
+                </text>
+              {/if}
+              {#if d.data.name == "PeaceFem"}
+                <text
+                  x={20}
+                  y={5}
+                  font-size="10"
+                  fill="white"
+                  transform={"rotate(-35)"}
+                >
+                  App
+                </text>
+              {/if}
+              {#if d.data.name == "Data Overview"}
                 <text
                   x={20}
                   y={5}
@@ -845,6 +968,28 @@
                   Infographics
                 </text>
               {/if}
+              {#if d.data.name == "Python"}
+                <text
+                  x={20}
+                  y={5}
+                  font-size="10"
+                  fill="white"
+                  transform={"rotate(-35)"}
+                >
+                  Programming
+                </text>
+              {/if}
+              {#if d.data.name == "Network"}
+                <text
+                  x={20}
+                  y={5}
+                  font-size="10"
+                  fill="white"
+                  transform={"rotate(-35)"}
+                >
+                  Visualization
+                </text>
+              {/if}
 
               <!-- main circle -->
               <circle
@@ -873,11 +1018,15 @@
                   cy={(orbitRadius + ringGap * Math.floor(i / 12)) *
                     Math.sin(((-90 + ((i % 12) + 1) * 30) * Math.PI) / 180)}
                   r="1.5"
-                  fill="white"
+                  fill="yellow"
                 />
               {/each}
 
               {#if d.data.name == "Research"}
+                <circle cx="0" cy="0" r="15" fill="white" opacity="0.2"
+                ></circle>
+              {/if}
+              {#if d.data.name == "PeaceFem"}
                 <circle cx="0" cy="0" r="15" fill="white" opacity="0.2"
                 ></circle>
               {/if}
@@ -1010,32 +1159,38 @@
     height: 100vh;
     display: flex;
   }
+
   .tree {
     width: 70%;
     height: 100vh;
   }
+
   #step_description {
     position: absolute;
-    top: 80%;
+    top: 70%;
     left: 50%;
+    width: 60%;
     transform: translateX(-50%);
-    color: rgb(0, 0, 0);
+    color: rgb(255, 255, 255);
     font-size: 14px;
-    background-color: rgb(255, 255, 255);
-    padding: 5px 10px;
+    background-color: rgba(0, 0, 0, 0.7);
+    padding: 20px 20px;
     border-radius: 5px;
     z-index: 10;
   }
+
   .overview {
     width: 30%;
     display: flex;
     flex-direction: column;
   }
+
   .ppl {
     width: 100%;
     height: 100%;
     /* background-color: red; */
   }
+
   #details {
     position: absolute;
     top: 4px;
