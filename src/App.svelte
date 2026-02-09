@@ -19,11 +19,17 @@
     details_width = 1,
     details_data = [],
     clicked = null,
+    removedAgreements,
     margin = { top: 20, right: 100, bottom: 20, left: 100 },
     nodesUp = [],
     linksUp = [],
     nodesDown = [],
-    linksDown = [];
+    linksDown = [],
+    ucdpNodes = [],
+    ucdpLinks = [],
+    tracker,
+    peacefem,
+    ucdp_root;
 
   $: innerWidth = width - margin.right - margin.left;
   $: innerHeight = height - margin.top - margin.bottom;
@@ -35,6 +41,13 @@
     {
       name: "__downward_root__",
       children: data.downward,
+    },
+    (d) => d.children,
+  );
+  let ucdpDown = d3.hierarchy(
+    {
+      name: "__ucdp_root__",
+      children: data.ucdp,
     },
     (d) => d.children,
   );
@@ -93,6 +106,7 @@
   $: {
     upwardCluster(rootUp);
     downwardCluster(rootDown);
+    downwardCluster(ucdpDown);
 
     // posittion pax subdatabases to the centre
     alignBranchToX(rootUp, "PA-X Local", "VUE");
@@ -103,6 +117,7 @@
       .find((d) => d.data.name === "Collect");
     rootDown.x = collectNode.x;
     rootUp.y = 0;
+    ucdpDown.x = innerWidth - 50;
 
     // positioning of the upward tree nodes
     const maxDepth = rootUp.height + 1;
@@ -140,8 +155,8 @@
     }
 
     // position peacefem and youth to the top level
-    let peacefem = rootUp.descendants().find((d) => d.data.name === "PeaceFem");
-    let tracker = rootUp.descendants().find((d) => d.data.name === "Tracker");
+    peacefem = rootUp.descendants().find((d) => d.data.name === "PeaceFem");
+    tracker = rootUp.descendants().find((d) => d.data.name === "Tracker");
     let infographics = rootUp
       .descendants()
       .find((d) => d.data.name === "Infographics");
@@ -158,7 +173,27 @@
     // positioning of the downward tree nodes
     const spacingDown = downHeight / (rootDown.height + 0.8);
     setUniformY(rootDown, spacingDown);
+
+    // positioning of ucdp down tree
+    const paxConflictNodes = rootDown
+      .descendants()
+      .filter((d) => d.data.name === "conflict");
+    const conflictY =
+      paxConflictNodes.length > 0 ? paxConflictNodes[0].y : null;
+    if (conflictY !== null) {
+      ucdpDown.descendants().forEach((d) => {
+        // only real nodes, skip artificial root
+        if (d.parent) {
+          d.y = conflictY;
+        }
+      });
+    }
+
     groupDownwardByContinent(rootDown, innerWidth, {
+      nodeSpacing: 10,
+      continentGap: 80,
+    });
+    groupDownwardByContinent(ucdpDown, innerWidth, {
       nodeSpacing: 10,
       continentGap: 80,
     });
@@ -169,12 +204,17 @@
     nodesDown = rootDown.descendants().slice(1);
     linksDown = nodesDown.filter((d) => d.parent);
 
+    ucdpNodes = ucdpDown.descendants();
+    ucdpLinks = ucdpNodes.filter((d) => d.parent);
+
+    ucdp_root = ucdpNodes.find((d) => d.data.name === "__ucdp_root__");
+
     // remove some nodes from downward tree
     const allNodesDown = rootDown.descendants().slice(1);
     const allLinksDown = allNodesDown.filter((d) => d.parent);
     // agreement-level nodes
     const agreementNodes = allNodesDown.filter((d) => d.depth === 1);
-    const removedAgreements = pickRandom(agreementNodes, 20);
+    removedAgreements = pickRandom(agreementNodes, 20);
 
     // filter nodes
     nodesDown = allNodesDown.filter((d) => {
@@ -224,8 +264,10 @@
 
       // 2. Always add all downward links
       linksDown.forEach((d) => {
-        const key = `${d.parent.data.id}→${d.data.id}`;
-        links.add(key);
+        if (!isInRemovedSubtree(d, removedAgreements)) {
+          const key = `${d.parent.data.id}→${d.data.id}`;
+          links.add(key);
+        }
       });
 
       highlightedLinks = links;
@@ -551,6 +593,14 @@
   }
 
   $: console.log(currentLevelUp);
+  $: x1 = peacefem.x;
+  $: y1 = yCenter - peacefem.y; // upward tree
+
+  $: x2 = ucdp_root.x;
+  $: y2 = yCenter + ucdp_root.y; // downward tree
+  // parameters for the curve
+  $: curveRadius = Math.min(30, (y2 - y1) / 1.5);
+  const cornerYFactor = 0.5; // where the first corner is along y-axis (0-1)
 </script>
 
 <div id="wrapper" bind:clientWidth={width} bind:clientHeight={height}>
@@ -558,11 +608,10 @@
   <div class="tree">
     <button id="reset" on:click={reset}>reset</button>
     <button id="next" on:click={nextStepHandler}>next</button>
-
     {#if width !== undefined || height !== undefined}
       <svg {width} {height}>
         <!-- textures -->
-        <defs>
+        <!-- <defs>
           <pattern
             id="diagonalHatch"
             patternUnits="userSpaceOnUse"
@@ -603,20 +652,79 @@
           >
             <circle cx="5" cy="5" r="2" fill="white" />
           </pattern>
-        </defs>
+        </defs> -->
         <!-- BACKGROUND TREE -->
         <g transform={`translate(${margin.right}, ${margin.top})`}>
-          <!-- {#each linksUp as d}
+<path
+  d={`
+    M ${x1},${y1}
+    L ${x1},${y1 + (y2 - y1) / 1.5 - (y2 - y1) * 0.1}
+    C ${x1},${y1 + (y2 - y1) / 1.5} 
+      ${x1},${y1 + (y2 - y1) / 1.5} 
+      ${x1 + (x2 - x1) * 0.1},${y1 + (y2 - y1) / 1.5}
+    L ${x2 - (x2 - x1) * 0.1},${y1 + (y2 - y1) / 1.5}
+    C ${x2},${y1 + (y2 - y1) / 1.5} 
+      ${x2},${y1 + (y2 - y1) / 1.5} 
+      ${x2},${y1 + (y2 - y1) / 1.5 + (y2 - y1) * 0.1}
+    L ${x2},${y2}
+  `}
+  fill="none"
+  stroke="#666"
+  stroke-width="2"
+  stroke-dasharray="4 4"
+/>
+
+
+
+
+          {#each linksUp as d}
             <path
-              d={`M${d.x},${yCenter - d.y}
-      C${d.x},${yCenter - d.parent.y - 20}
-       ${d.parent.x},${yCenter - d.parent.y - 50}
-       ${d.parent.x},${yCenter - d.parent.y}`}
+              d={d.data.name === "Research"
+                ? (() => {
+                    const offset = Math.min(
+                      50,
+                      (yCenter - d.y - (yCenter - d.parent.y)) * 0.3,
+                    );
+                    const control = offset * 0.3;
+
+                    return `M${d.x},${yCenter - d.y}
+                            L${d.x},${yCenter - d.parent.y + offset}
+                            C${d.x},${yCenter - d.parent.y + control}
+                             ${d.parent.x},${yCenter - d.parent.y + control}
+                             ${d.parent.x},${yCenter - d.parent.y}`;
+                  })()
+                : (d.data.name === "d3" && d.parent.data.name === "PA-X") ||
+                    d.data.name === "Tracker" ||
+                    d.data.name === "Infographics"
+                  ? (() => {
+                      const baseOffset = Math.min(
+                        50,
+                        (yCenter - d.y - (yCenter - d.parent.y)) * 0.3,
+                      );
+
+                      // push corner DOWN for Tracker / Infographics
+                      const extraDown =
+                        d.data.name === "Tracker" ||
+                        d.data.name === "Infographics"
+                          ? 20
+                          : 0;
+
+                      const offset = baseOffset + extraDown;
+                      const control = offset * 0.3;
+
+                      return `M${d.x},${yCenter - d.y}
+            L${d.x},${yCenter - d.parent.y + offset}
+            C${d.x},${yCenter - d.parent.y + control}
+             ${d.parent.x},${yCenter - d.parent.y + control}
+             ${d.parent.x},${yCenter - d.parent.y}`;
+                    })()
+                  : `M${d.x},${yCenter - d.y}
+                   C${d.x},${yCenter - d.parent.y - 20}
+                    ${d.parent.x},${yCenter - d.parent.y - 50}
+                    ${d.parent.x},${yCenter - d.parent.y}`}
               fill="none"
-              stroke={d.data.branch_type === "upper_trunk" ||
-              d.data.branch_type === "trunk"
-                ? "#333333"
-                : "#333333"}
+              stroke="steelblue"
+              stroke-opacity="0.3"
               stroke-width={d.data.branch_type === "trunk"
                 ? 10
                 : d.data.branch_type === "upper_trunk"
@@ -625,7 +733,44 @@
                     ? 4
                     : 1}
             />
-          {/each} -->
+          {/each}
+
+          <!-- ucdp nodes and links -->
+          {#each ucdpLinks as d}
+            <path
+              d={`M${d.x},${yCenter + d.y} 
+       C${d.x},${yCenter + d.parent.y + 60} 
+        ${d.parent.x},${yCenter + d.parent.y + 70} 
+        ${d.parent.x},${yCenter + d.parent.y}`}
+              fill="none"
+              stroke="gray"
+              stroke-opacity="0.1"
+              stroke-width="1"
+              stroke-dasharray="4 4"
+            />
+          {/each}
+          {#each ucdpNodes as d}
+            <g transform={`translate(${d.x}, ${yCenter + d.y})`}>
+              <circle
+                cx="0"
+                cy="0"
+                r={d.data.name == "__ucdp_root__" ? 4 : 2}
+                fill={d.data.name == "__ucdp_root__" ? "white" : "none"}
+              ></circle>
+              {#if d.data.name == "__ucdp_root__"}
+                <text
+                  x="10"
+                  y="0"
+                  font-size="10"
+                  fill="white"
+                  text-anchor="start"
+                >
+                  UCDP/ACLED
+                </text>
+              {/if}
+            </g>
+          {/each}
+
           {#each linksDown as d}
             <path
               d={`M${d.x},${yCenter + d.y} 
@@ -633,7 +778,10 @@
         ${d.parent.x},${yCenter + d.parent.y + 20} 
         ${d.parent.x},${yCenter + d.parent.y}`}
               fill="none"
-              stroke="#333333"
+              stroke={highlightedLinks.has(`${d.parent.data.id}→${d.data.id}`)
+                ? "gray"
+                : "steelblue"}
+              stroke-opacity="0.3"
               stroke-width="1"
             />
           {/each}
@@ -672,7 +820,7 @@
               fill="none"
               stroke={highlightedLinks.has(`${d.parent.data.id}→${d.data.id}`)
                 ? "gray"
-                : "#333333"}
+                : "steelblue"}
               stroke-width="1"
             />
           {/each}
@@ -696,7 +844,7 @@
                 cx="0"
                 cy="0"
                 r="2"
-                fill="#a6a6a6"
+                fill="white"
                 tabindex="0"
                 role="button"
                 aria-label="Node details"
@@ -716,7 +864,7 @@
             <path
               d={codePath}
               fill="none"
-              stroke="url(#tex-cross)"
+              stroke="white"
               stroke-width="30"
               stroke-opacity="0.2"
               stroke-linecap="round"
@@ -726,7 +874,7 @@
             <path
               d={qcPath}
               fill="none"
-              stroke="url(#tex-dots)"
+              stroke="white"
               stroke-width="30"
               stroke-opacity="0.2"
               stroke-linecap="round"
@@ -736,9 +884,9 @@
             <path
               d={dbPath}
               fill="none"
-              stroke="url(#diagonalHatch)"
+              stroke="white"
               stroke-width="30"
-              stroke-opacity="0.4"
+              stroke-opacity="0.2"
               stroke-linecap="round"
             />
           {/if}
@@ -841,8 +989,8 @@
                     ${d.parent.x},${yCenter - d.parent.y}`}
               fill="none"
               stroke={highlightedLinks.has(`${d.parent.data.id}→${d.data.id}`)
-                ? "gray"
-                : "#333333"}
+                ? "white"
+                : "steelblue"}
               stroke-width={d.data.branch_type === "trunk"
                 ? 10
                 : d.data.branch_type === "upper_trunk"
@@ -996,7 +1144,7 @@
                 cx="0"
                 cy="0"
                 r="4.5"
-                fill="#a6a6a6"
+                fill="white"
                 tabindex="0"
                 role="button"
                 aria-label="Node details"
@@ -1176,6 +1324,7 @@
     background-color: rgba(0, 0, 0, 0.7);
     padding: 20px 20px;
     border-radius: 5px;
+    text-align: center;
     z-index: 10;
   }
 

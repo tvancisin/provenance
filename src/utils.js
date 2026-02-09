@@ -255,7 +255,7 @@ let original_data = {
                                       type: "prog",
                                       ppl: 1,
                                       children: [
-                                        { name: "Actors-Network", step:12, type: "vis" },
+                                        { name: "Actors-Network", step: 12, type: "vis" },
                                       ],
                                     },
                                     {
@@ -380,24 +380,6 @@ let original_data = {
       ],
     },
   ],
-  // downward: [
-  //     { name: 'agreement', children: [{ name: 'negotiation', children: [{ name: 'conflict' }] }] },
-  //     { name: 'agreement', children: [{ name: 'negotiation', children: [{ name: 'conflict' }] }] },
-  //     { name: 'agreement', children: [{ name: 'negotiation', children: [{ name: 'conflict' }] }] },
-  //     { name: 'agreement', children: [{ name: 'negotiation', children: [{ name: 'conflict' }] }] },
-  //     { name: 'agreement', children: [{ name: 'negotiation', children: [{ name: 'conflict' }] }] },
-  //     { name: 'agreement', children: [{ name: 'negotiation', children: [{ name: 'conflict' }] }] },
-  //     { name: 'agreement', children: [{ name: 'negotiation', children: [{ name: 'conflict' }] }] },
-  //     { name: 'agreement', children: [{ name: 'negotiation', children: [{ name: 'conflict' }] }] },
-  //     { name: 'agreement', children: [{ name: 'negotiation', children: [{ name: 'conflict' }] }] },
-  //     { name: 'agreement', children: [{ name: 'negotiation', children: [{ name: 'conflict' }] }] },
-  //     { name: 'agreement', children: [{ name: 'negotiation', children: [{ name: 'conflict' }] }] },
-  //     { name: 'agreement', children: [{ name: 'negotiation', children: [{ name: 'conflict' }] }] },
-  //     { name: 'agreement', children: [{ name: 'negotiation', children: [{ name: 'conflict' }] }] },
-  //     { name: 'agreement', children: [{ name: 'negotiation', children: [{ name: 'conflict' }] }] },
-  //     { name: 'agreement', children: [{ name: 'negotiation', children: [{ name: 'conflict' }] }] },
-  //     { name: 'agreement', children: [{ name: 'negotiation', children: [{ name: 'conflict' }] }] },
-  // ]
   downward: [
     // Africa (20)
     ...Array.from({ length: 20 }, () => ({
@@ -442,6 +424,49 @@ let original_data = {
       children: [{ name: "negotiation", children: [{ name: "conflict" }] }],
     },
   ],
+  ucdp: [
+    // Africa (20)
+    ...Array.from({ length: 20 }, () => ({
+      name: "conflict",
+      number: 721,
+      continent: "Africa",
+    })),
+
+    // Europe & Eurasia (12)
+    ...Array.from({ length: 12 }, () => ({
+      name: "conflict",
+      number: 435,
+      continent: "Europe_Eurasia",
+    })),
+
+    // Asia (12)
+    ...Array.from({ length: 12 }, () => ({
+      name: "conflict",
+      number: 425,
+      continent: "Asia",
+    })),
+
+    // Middle East (8)
+    ...Array.from({ length: 8 }, () => ({
+      name: "conflict",
+      number: 295,
+      continent: "Middle_East",
+    })),
+
+    // Americas (7)
+    ...Array.from({ length: 7 }, () => ({
+      name: "conflict",
+      number: 263,
+      continent: "Americas",
+    })),
+
+    // Cross (1)
+    {
+      name: "conflict",
+      number: 38,
+      continent: "Cross",
+    },
+  ]
 };
 
 export let steps = {
@@ -450,7 +475,7 @@ export let steps = {
       step_id: "1",
       type: "conflicts",
       description:
-        "The first events in real life that are captured in some way by the PA-X Database are the conflict events themselves. A conflict is defined in PA-X as armed violence, causing more than 25 conflict-related deaths in one year.",
+        "First real life events captured in some way by the PA-X Database are the conflict events themselves. A conflict is defined in PA-X as armed violence, causing more than 25 conflict-related deaths in one year.",
     },
     {
       step_id: "2",
@@ -462,37 +487,37 @@ export let steps = {
       step_id: "3",
       type: "peace_agreements",
       description:
-        "If peace negotiations reach a formal agreement, which can be an oral agreement/handshake or in the form of a written, signed peace agreement.",
+        "If peace negotiations reach a formal agreement, which is not the case for all negotiations, it results in a signed peace agreement.",
     },
     {
       step_id: "4",
       type: "collection",
       description:
-        "PA-X collects the formal, signed, written peace agreements that are publicly available that address conflicts with more than 25 conflict related deaths in a year.",
+        "PA-X collects formal, signed, written, and publicly available peace agreements that address conflicts with more than 25 conflict related deaths in a year.",
     },
     {
       step_id: "5",
       type: "translation",
       description:
-        "Often, these agreements are published in their local languages. All agreements that get collected for PA-X get translated into english by domain and language experts.",
+        "Peace agreements are often written in local languages and in these cases, the documents are translated into English by domain and language experts.",
     },
     {
       step_id: "6",
       type: "transcription",
       description:
-        "The agreements can be in a range of formats - PDFs, word documents, images of written text or even tweets. The text of the agreement needs to be transcribed into plain text.",
+        "The agreements come in various formats (PDF, Word, Images, Tweets) and the the text therefore often needs to be transcribed into plain text.",
     },
     {
       step_id: "7",
       type: "pax_coding",
       description:
-        "The plain text of the agreement then gets segmented, and a team of expert coders tags the text segments/agreement provisions with topics that are contained within the PA-X Ontology. There are over 250 topics that text can be tagged with. They are arranged hierarchically into a range of categorys from Gender, to Socio-economic Development, to Political or Military Powersharing. The coders apply relevant tags to text they think is applicable, based on the coding manual.",
+        "The plain text of the agreement then gets tagged into topics covered within. These include categories like Socio-economic Development, to Political or Military Powersharing, Gender etc.",
     },
     {
       step_id: "8",
       type: "pax_quality_control",
       description:
-        "The tagged text by the team of coders goes through quality control by the PA-X Data Manager to ensure the coding is consistent with defintions of the topics across versions, and to ensure there are no missed tags.",
+        "The tagged text goes through quality control by the PA-X Data Manager to ensure the coding is consistent with defintions of the topics across versions.",
     },
     {
       step_id: "9",
