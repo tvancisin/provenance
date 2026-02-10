@@ -14,8 +14,8 @@
 
   let width,
     height,
-    orbitRadius = 8,
-    ringGap = 4,
+    orbitRadius = 12,
+    ringGap = 5,
     details_width = 1,
     details_data = [],
     clicked = null,
@@ -25,6 +25,8 @@
     linksUp = [],
     nodesDown = [],
     linksDown = [],
+    visibleNodesDown = [],
+    visibleLinksDown = [],
     ucdpNodes = [],
     ucdpLinks = [],
     tracker,
@@ -117,7 +119,7 @@
       .find((d) => d.data.name === "Collect");
     rootDown.x = collectNode.x;
     rootUp.y = 0;
-    ucdpDown.x = innerWidth - 50;
+    ucdpDown.x = innerWidth - 100;
 
     // positioning of the upward tree nodes
     const maxDepth = rootUp.height + 1;
@@ -200,13 +202,10 @@
 
     nodesUp = rootUp.descendants();
     linksUp = nodesUp.slice(1);
-
     nodesDown = rootDown.descendants().slice(1);
     linksDown = nodesDown.filter((d) => d.parent);
-
     ucdpNodes = ucdpDown.descendants();
     ucdpLinks = ucdpNodes.filter((d) => d.parent);
-
     ucdp_root = ucdpNodes.find((d) => d.data.name === "__ucdp_root__");
 
     // remove some nodes from downward tree
@@ -323,16 +322,15 @@
         return 0;
     }
   }
-  let currentLevelDown = 0;
+  let currentLevelDown = -1;
   let currentLevelUp = -1;
   let segment_height;
 
   // levels for downward nodes
-  $: nodesDown.forEach((d) => {
+  // assign revealLevel to all downward descendants (including the artificial root)
+  $: rootDown.descendants().forEach((d) => {
     d.revealLevel = downRevealLevel(d);
   });
-
-  $: maxHeightUp = Math.max(...nodesUp.map((d) => d.height));
   $: maxHeightDown = Math.max(...nodesDown.map((d) => d.revealLevel));
   $: currentHeightUp = currentLevelUp >= 0 ? currentLevelUp : null;
 
@@ -350,17 +348,27 @@
   $: visibleNodesDown = nodesDown.filter(
     (d) => d.revealLevel >= maxHeightDown - currentLevelDown,
   );
-  $: visibleLinksDown = linksDown.filter(
-    (d) =>
-      d.parent &&
-      d.revealLevel >= maxHeightDown - currentLevelDown &&
-      d.parent.revealLevel >= maxHeightDown - currentLevelDown,
-  );
+
+  // show links from a child node when the child has been revealed;
+  // allow the parent to be one level lower so negotiation->agreement links
+  // appear on the first reveal step, and agreement->root on the next.
+  $: {
+    const threshold = maxHeightDown - currentLevelDown;
+    visibleLinksDown = linksDown.filter((d) => {
+      if (!d.parent) return false;
+      return (
+        d.revealLevel >= threshold && d.parent.revealLevel >= threshold - 1
+      );
+    });
+  }
 
   // next step handler
   function nextStepHandler() {
     if (currentLevelDown < maxHeightDown) {
       currentLevelDown += 1;
+      if (currentLevelDown === 2) {
+        currentLevelUp += 1;
+      }
     } else {
       currentLevelUp += 1;
     }
@@ -592,15 +600,15 @@
     }
   }
 
-  $: console.log(currentLevelUp);
   $: x1 = peacefem.x;
-  $: y1 = yCenter - peacefem.y; // upward tree
-
+  $: y1 = yCenter - peacefem.y;
   $: x2 = ucdp_root.x;
-  $: y2 = yCenter + ucdp_root.y; // downward tree
-  // parameters for the curve
-  $: curveRadius = Math.min(30, (y2 - y1) / 1.5);
-  const cornerYFactor = 0.5; // where the first corner is along y-axis (0-1)
+  $: y2 = yCenter + ucdp_root.y;
+
+  $: xt1 = tracker.x;
+  $: yt1 = yCenter - tracker.y;
+  $: xt2 = ucdp_root.x;
+  $: yt2 = yCenter + ucdp_root.y;
 </script>
 
 <div id="wrapper" bind:clientWidth={width} bind:clientHeight={height}>
@@ -610,8 +618,9 @@
     <button id="next" on:click={nextStepHandler}>next</button>
     {#if width !== undefined || height !== undefined}
       <svg {width} {height}>
-        <!-- textures -->
-        <!-- <defs>
+        <g transform={`translate(${margin.right}, ${margin.top})`}>
+          <!-- textures -->
+          <!-- <defs>
           <pattern
             id="diagonalHatch"
             patternUnits="userSpaceOnUse"
@@ -653,10 +662,11 @@
             <circle cx="5" cy="5" r="2" fill="white" />
           </pattern>
         </defs> -->
-        <!-- BACKGROUND TREE -->
-        <g transform={`translate(${margin.right}, ${margin.top})`}>
-<path
-  d={`
+
+          <!-- BACKGROUND TREE -->
+          <!-- ucdp nodes and links -->
+          <path
+            d={`
     M ${x1},${y1}
     L ${x1},${y1 + (y2 - y1) / 1.5 - (y2 - y1) * 0.1}
     C ${x1},${y1 + (y2 - y1) / 1.5} 
@@ -668,14 +678,62 @@
       ${x2},${y1 + (y2 - y1) / 1.5 + (y2 - y1) * 0.1}
     L ${x2},${y2}
   `}
-  fill="none"
-  stroke="#666"
-  stroke-width="2"
-  stroke-dasharray="4 4"
-/>
-
-
-
+            fill="none"
+            stroke="#404040"
+            stroke-width="3"
+            stroke-opacity="0.5"
+          />
+          <path
+            d={`
+    M ${xt1},${yt1}
+    L ${xt1},${yt1 + (yt2 - yt1) / 1.5 - (yt2 - yt1) * 0.1}
+    C ${xt1},${yt1 + (yt2 - yt1) / 1.5} 
+      ${xt1},${yt1 + (yt2 - yt1) / 1.5} 
+      ${xt1 + (xt2 - xt1) * 0.1},${yt1 + (yt2 - yt1) / 1.5}
+    L ${xt2 - (xt2 - xt1) * 0.1},${yt1 + (yt2 - yt1) / 1.5}
+    C ${xt2},${yt1 + (yt2 - yt1) / 1.5} 
+      ${xt2},${yt1 + (yt2 - yt1) / 1.5} 
+      ${xt2},${yt1 + (yt2 - yt1) / 1.5 + (yt2 - yt1) * 0.1}
+    L ${xt2},${yt2}
+  `}
+            fill="none"
+            stroke="#404040"
+            stroke-width="3"
+            stroke-opacity="0.5"
+          />
+          {#each ucdpLinks as d}
+            <path
+              d={`M${d.x},${yCenter + d.y} 
+       C${d.x},${yCenter + d.parent.y + 60} 
+        ${d.parent.x},${yCenter + d.parent.y + 70} 
+        ${d.parent.x},${yCenter + d.parent.y}`}
+              fill="none"
+              stroke="#404040"
+              stroke-opacity="0.7"
+              stroke-width="1"
+            />
+          {/each}
+          {#each ucdpNodes as d}
+            <g transform={`translate(${d.x}, ${yCenter + d.y})`}>
+              <circle
+                cx="0"
+                cy="0"
+                r={d.data.name == "__ucdp_root__" ? 8 : 0}
+                fill={d.data.name == "__ucdp_root__" ? "gray" : "none"}
+              ></circle>
+              {#if d.data.name == "__ucdp_root__"}
+                <text
+                  x="10"
+                  y="0"
+                  font-size="10"
+                  fill="white"
+                  text-anchor="start"
+                >
+                  UCDP/ACLED
+                </text>
+              {/if}
+            </g>
+          {/each}
 
           {#each linksUp as d}
             <path
@@ -702,7 +760,6 @@
                         (yCenter - d.y - (yCenter - d.parent.y)) * 0.3,
                       );
 
-                      // push corner DOWN for Tracker / Infographics
                       const extraDown =
                         d.data.name === "Tracker" ||
                         d.data.name === "Infographics"
@@ -723,52 +780,15 @@
                     ${d.parent.x},${yCenter - d.parent.y - 50}
                     ${d.parent.x},${yCenter - d.parent.y}`}
               fill="none"
-              stroke="steelblue"
-              stroke-opacity="0.3"
+              stroke="#005266"
               stroke-width={d.data.branch_type === "trunk"
-                ? 10
+                ? 15
                 : d.data.branch_type === "upper_trunk"
-                  ? 7
+                  ? 10
                   : d.data.branch_type === "uppest_trunk"
-                    ? 4
-                    : 1}
+                    ? 5
+                    : 2}
             />
-          {/each}
-
-          <!-- ucdp nodes and links -->
-          {#each ucdpLinks as d}
-            <path
-              d={`M${d.x},${yCenter + d.y} 
-       C${d.x},${yCenter + d.parent.y + 60} 
-        ${d.parent.x},${yCenter + d.parent.y + 70} 
-        ${d.parent.x},${yCenter + d.parent.y}`}
-              fill="none"
-              stroke="gray"
-              stroke-opacity="0.1"
-              stroke-width="1"
-              stroke-dasharray="4 4"
-            />
-          {/each}
-          {#each ucdpNodes as d}
-            <g transform={`translate(${d.x}, ${yCenter + d.y})`}>
-              <circle
-                cx="0"
-                cy="0"
-                r={d.data.name == "__ucdp_root__" ? 4 : 2}
-                fill={d.data.name == "__ucdp_root__" ? "white" : "none"}
-              ></circle>
-              {#if d.data.name == "__ucdp_root__"}
-                <text
-                  x="10"
-                  y="0"
-                  font-size="10"
-                  fill="white"
-                  text-anchor="start"
-                >
-                  UCDP/ACLED
-                </text>
-              {/if}
-            </g>
           {/each}
 
           {#each linksDown as d}
@@ -778,21 +798,18 @@
         ${d.parent.x},${yCenter + d.parent.y + 20} 
         ${d.parent.x},${yCenter + d.parent.y}`}
               fill="none"
-              stroke={highlightedLinks.has(`${d.parent.data.id}→${d.data.id}`)
-                ? "gray"
-                : "steelblue"}
-              stroke-opacity="0.3"
+              stroke="#005266"
               stroke-width="1"
             />
           {/each}
           {#each nodesUp as d}
             <g transform={`translate(${d.x}, ${yCenter - d.y})`}>
-              <circle cx="0" cy="0" r="4.5" fill="#4d4d4d"></circle>
+              <circle cx="0" cy="0" r="8" fill="gray"></circle>
             </g>
           {/each}
           {#each nodesDown as d, i}
             <g transform={`translate(${d.x}, ${yCenter + d.y})`}>
-              <circle cx="0" cy="0" r="2" fill="#4d4d4d"></circle>
+              <circle cx="0" cy="0" r="3" fill="gray"></circle>
             </g>
           {/each}
 
@@ -819,8 +836,8 @@
         ${d.parent.x},${yCenter + d.parent.y}`}
               fill="none"
               stroke={highlightedLinks.has(`${d.parent.data.id}→${d.data.id}`)
-                ? "gray"
-                : "steelblue"}
+                ? "#cc8500"
+                : "#008fb3"}
               stroke-width="1"
             />
           {/each}
@@ -843,8 +860,8 @@
               <circle
                 cx="0"
                 cy="0"
-                r="2"
-                fill="white"
+                r="3"
+                fill="#bfbfbf"
                 tabindex="0"
                 role="button"
                 aria-label="Node details"
@@ -989,15 +1006,15 @@
                     ${d.parent.x},${yCenter - d.parent.y}`}
               fill="none"
               stroke={highlightedLinks.has(`${d.parent.data.id}→${d.data.id}`)
-                ? "white"
-                : "steelblue"}
+                ? "#cc8500"
+                : "#008fb3"}
               stroke-width={d.data.branch_type === "trunk"
-                ? 10
+                ? 15
                 : d.data.branch_type === "upper_trunk"
-                  ? 7
+                  ? 10
                   : d.data.branch_type === "uppest_trunk"
-                    ? 4
-                    : 1}
+                    ? 5
+                    : 2}
             />
           {/each}
 
@@ -1143,8 +1160,8 @@
               <circle
                 cx="0"
                 cy="0"
-                r="4.5"
-                fill="white"
+                r="8"
+                fill="#bfbfbf"
                 tabindex="0"
                 role="button"
                 aria-label="Node details"
@@ -1165,8 +1182,8 @@
                     Math.cos(((-90 + ((i % 12) + 1) * 30) * Math.PI) / 180)}
                   cy={(orbitRadius + ringGap * Math.floor(i / 12)) *
                     Math.sin(((-90 + ((i % 12) + 1) * 30) * Math.PI) / 180)}
-                  r="1.5"
-                  fill="yellow"
+                  r="2"
+                  fill="white"
                 />
               {/each}
 
