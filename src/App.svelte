@@ -9,13 +9,10 @@
     setUniformY,
   } from "./utils";
 
-  // TODO
-  // add external datasets at least acled and ucdp
-
   let width,
     height,
-    orbitRadius = 12,
-    ringGap = 5,
+    orbitRadius = 11,
+    ringGap = 4,
     details_width = 1,
     details_data = [],
     clicked = null,
@@ -31,6 +28,7 @@
     ucdpLinks = [],
     tracker,
     peacefem,
+    globe,
     ucdp_root;
 
   $: innerWidth = width - margin.right - margin.left;
@@ -119,7 +117,8 @@
       .find((d) => d.data.name === "Collect");
     rootDown.x = collectNode.x;
     rootUp.y = 0;
-    ucdpDown.x = innerWidth - 100;
+    ucdpDown.x = innerWidth / 1.5;
+    ucdpDown.y -= 20;
 
     // positioning of the upward tree nodes
     const maxDepth = rootUp.height + 1;
@@ -157,6 +156,7 @@
     }
 
     // position peacefem and youth to the top level
+    globe = rootUp.descendants().find((d) => d.data.name === "Data Overview");
     peacefem = rootUp.descendants().find((d) => d.data.name === "PeaceFem");
     tracker = rootUp.descendants().find((d) => d.data.name === "Tracker");
     let infographics = rootUp
@@ -294,14 +294,15 @@
       current = current.parent;
     }
 
-    // Walk up to collect all parents from downCurrent, except the last one
-    while (downCurrent && downCurrent.parent !== null) {
-      downCurrentChain.push(downCurrent); // Collect downCurrent nodes in order
-      downCurrent = downCurrent.parent;
+    while (downCurrent) {
+      console.log(downCurrent);
+
+      downCurrentChain.push(downCurrent);
+      downCurrent = downCurrent.children?.[0] || null;
     }
 
     // Push the downCurrent chain in reverse order
-    fullChain = fullChain.concat(downCurrentChain.reverse());
+    fullChain = fullChain.concat(downCurrentChain);
   }
   $: if (fullChain.length > 1) {
     const totalBorder = fullChain.length * 4;
@@ -376,47 +377,48 @@
 
   // remove first level connections
   $: {
-    if (currentLevelUp === -1 && currentLevelDown === 1) {
+    if (currentLevelUp === -1 && currentLevelDown === 0) {
+      d3.select("#step_description")
+        .style("visibility", "visible")
+        .html(steps.workflow[0].description);
+      d3.select("#step_description").style("top", "80%");
+    } else if (currentLevelUp === -1 && currentLevelDown === 1) {
       d3.select("#step_description").html(steps.workflow[1].description);
-      d3.select("#step_description").style("top", "65%");
-    } else if (currentLevelUp === -1 && currentLevelDown === 2) {
-      d3.select("#step_description").html(steps.workflow[2].description);
-      d3.select("#step_description").style("top", "60%");
+      d3.select("#step_description").transition().style("top", "75%");
     } else if (currentLevelUp === 0) {
-      d3.select("#step_description").html(steps.workflow[3].description);
-      d3.select("#step_description").style("top", "55%");
+      d3.select("#step_description").html(steps.workflow[2].description);
+      d3.select("#step_description").transition().style("top", "70%");
     } else if (currentLevelUp === 1) {
-      d3.select("#step_description").html(steps.workflow[4].description);
-      d3.select("#step_description").style("top", "50%");
+      d3.select("#step_description").html(steps.workflow[3].description);
+      d3.select("#step_description").transition().style("top", "65%");
     } else if (currentLevelUp === 2) {
-      d3.select("#step_description").html(steps.workflow[5].description);
-      d3.select("#step_description").style("top", "45%");
+      d3.select("#step_description").html(steps.workflow[4].description);
+      d3.select("#step_description").transition().style("top", "60%");
     } else if (currentLevelUp === 3) {
-      d3.select("#step_description").html(steps.workflow[6].description);
-      d3.select("#step_description").style("top", "40%");
+      d3.select("#step_description").html(steps.workflow[5].description);
+      d3.select("#step_description").transition().style("top", "55%");
     } else if (currentLevelUp === 4) {
-      d3.select("#step_description").html(steps.workflow[7].description);
-      d3.select("#step_description").style("top", "35%");
+      d3.select("#step_description").html(steps.workflow[6].description);
+      d3.select("#step_description").transition().style("top", "50%");
     } else if (currentLevelUp === 5) {
-      d3.select("#step_description").html(steps.workflow[8].description);
-      d3.select("#step_description").style("top", "30%");
+      d3.select("#step_description").html(steps.workflow[7].description);
+      d3.select("#step_description").transition().style("top", "45%");
     } else if (currentLevelUp === 6) {
-      d3.select("#step_description").html(steps.workflow[9].description);
-      d3.select("#step_description").style("top", "25%");
+      d3.select("#step_description").html(steps.workflow[8].description);
+      d3.select("#step_description").transition().style("top", "32%");
     } else if (currentLevelUp === 7) {
-      d3.select("#step_description").style("top", "20%");
-      d3.select("#step_description").html(steps.workflow[10].description);
+      d3.select("#step_description").transition().style("top", "28%");
+      d3.select("#step_description").html(steps.workflow[9].description);
       d3.select(".trackerCircle").remove();
     } else if (currentLevelUp === 8) {
-      d3.select("#step_description").style("top", "15%");
-      d3.select("#step_description").html(steps.workflow[11].description);
+      d3.select("#step_description").transition().style("top", "18%");
+      d3.select("#step_description").html(steps.workflow[10].description);
     } else if (currentLevelUp === 9) {
-      d3.select("#step_description").style("top", "10%");
-      d3.select("#step_description").html(steps.workflow[12].description);
+      d3.select("#step_description").remove();
+      d3.select("#step_description").html(steps.workflow[11].description);
       d3.select(".progPathFirst").remove();
     } else if (currentLevelUp === 10) {
-      d3.select("#step_description").style("top", "2%");
-      d3.select("#step_description").html(steps.workflow[13].description);
+      d3.select("#step_description").html(steps.workflow[12].description);
       d3.selectAll(".visPathFirst, .pbiCircle").remove();
     }
   }
@@ -442,9 +444,7 @@
   );
 
   // second layer of programming
-  $: paXProgSecond = rootUp
-    .descendants()
-    .filter((d) => d.data.type === "prog" && d.parent.data.name == "PA-X");
+  $: paXProgSecond = rootUp.descendants().filter((d) => d.data.type === "prog");
   $: paXProgSecond.sort((a, b) => a.x - b.x);
   $: obstaclesProgSecond = rootUp
     .descendants()
@@ -472,7 +472,6 @@
     ) {
       return false;
     }
-
     return true;
   });
   $: paXVisNodes.sort((a, b) => a.x - b.x);
@@ -493,26 +492,39 @@
   // second level of vis
   $: paXVisNodesSecond = rootUp
     .descendants()
-    .filter(
-      (d) =>
-        d.data.type === "vis" &&
-        d.parent?.data?.name === "d3" &&
-        d.parent?.parent?.data?.name === "PA-X",
-    )
-    .sort((a, b) => a.x - b.x)
-    .slice(-5);
+    .filter((d) => d.data.type === "vis" && d.parent.data.name !== "PA-X")
+    .sort((a, b) => a.x - b.x);
   $: paXVisNodesSecond.sort((a, b) => a.x - b.x);
   $: visObstaclesSecond = rootUp
     .descendants()
     .filter(
       (d) =>
         !paXVisNodesSecond.includes(d) &&
-        d.parent?.ancestors().some((a) => a.data.name === "PA-X"),
+        d.parent?.ancestors().some((a) => a.data.name == "PA-X"),
     );
   $: visPathSecond = generateDiagonalProgPath(
     yCenter,
     paXVisNodesSecond,
     visObstaclesSecond,
+    40,
+  );
+
+  $: paXVisNodesThird = rootUp
+    .descendants()
+    .filter((d) => d.data.type === "vis")
+    .sort((a, b) => a.x - b.x);
+  $: paXVisNodesThird.sort((a, b) => a.x - b.x);
+  $: visObstaclesThird = rootUp
+    .descendants()
+    .filter(
+      (d) =>
+        !paXVisNodesThird.includes(d) &&
+        d.parent?.ancestors().some((a) => a.data.name == "PA-X"),
+    );
+  $: visPathThird = generateDiagonalProgPath(
+    yCenter,
+    paXVisNodesThird,
+    visObstaclesThird,
     40,
   );
 
@@ -600,19 +612,28 @@
     }
   }
 
-  $: x1 = peacefem.x;
-  $: y1 = yCenter - peacefem.y;
+  $: x1 = globe.x + 4;
+  $: y1 = yCenter - globe.y;
   $: x2 = ucdp_root.x;
   $: y2 = yCenter + ucdp_root.y;
 
-  $: xt1 = tracker.x;
+  $: xt1 = tracker.x + 4;
   $: yt1 = yCenter - tracker.y;
   $: xt2 = ucdp_root.x;
   $: yt2 = yCenter + ucdp_root.y;
+
+  $: console.log(currentLevelUp);
 </script>
 
 <div id="wrapper" bind:clientWidth={width} bind:clientHeight={height}>
-  <!-- <div id="step_description">{steps.workflow[0].description}</div> -->
+  <div id="step_description">
+    This is a visualization of all the steps taken to create the PA-X dataset,
+    including the data collection, transformation of the data, research this
+    dataset enables as well as visualization interfaces aimed to provide new
+    insights into peace and conflict resolution. Click "next" to gradually
+    reveal the workflow, and click on any node to see more details about that
+    step.
+  </div>
   <div class="tree">
     <button id="reset" on:click={reset}>reset</button>
     <button id="next" on:click={nextStepHandler}>next</button>
@@ -620,48 +641,71 @@
       <svg {width} {height}>
         <g transform={`translate(${margin.right}, ${margin.top})`}>
           <!-- textures -->
-          <!-- <defs>
-          <pattern
-            id="diagonalHatch"
-            patternUnits="userSpaceOnUse"
-            width="8"
-            height="8"
-            patternTransform="rotate(45)"
-          >
-            <line x1="0" y1="0" x2="0" y2="8" stroke="white" stroke-width="2" />
-          </pattern>
-          <pattern
-            id="tex-cross"
-            patternUnits="userSpaceOnUse"
-            width="8"
-            height="8"
-          >
-            <line
-              x1="0"
-              y1="0"
-              x2="0"
-              y2="8"
-              stroke="white"
-              stroke-width="1.5"
-            />
-            <line
-              x1="0"
-              y1="0"
-              x2="8"
-              y2="0"
-              stroke="white"
-              stroke-width="1.5"
-            />
-          </pattern>
-          <pattern
-            id="tex-dots"
-            patternUnits="userSpaceOnUse"
-            width="10"
-            height="10"
-          >
-            <circle cx="5" cy="5" r="2" fill="white" />
-          </pattern>
-        </defs> -->
+          <defs>
+            <pattern
+              id="diagonalHatch"
+              patternUnits="userSpaceOnUse"
+              width="8"
+              height="8"
+              patternTransform="rotate(45)"
+            >
+              <line
+                x1="0"
+                y1="0"
+                x2="0"
+                y2="8"
+                stroke="white"
+                stroke-width="2"
+              />
+            </pattern>
+            <pattern
+              id="diagonalMirrorHatch"
+              patternUnits="userSpaceOnUse"
+              width="8"
+              height="8"
+              patternTransform="rotate(-45)"
+            >
+              <line
+                x1="0"
+                y1="0"
+                x2="0"
+                y2="8"
+                stroke="white"
+                stroke-width="2"
+              />
+            </pattern>
+            <pattern
+              id="texCross"
+              patternUnits="userSpaceOnUse"
+              width="8"
+              height="8"
+            >
+              <line
+                x1="0"
+                y1="0"
+                x2="0"
+                y2="8"
+                stroke="white"
+                stroke-width="1.5"
+              />
+              <line
+                x1="0"
+                y1="0"
+                x2="8"
+                y2="0"
+                stroke="white"
+                stroke-width="1.5"
+              />
+            </pattern>
+            <pattern
+              id="tex-dots"
+              patternUnits="userSpaceOnUse"
+              width="10"
+              height="10"
+            >
+              <circle cx="5" cy="5" r="2" fill="white" />
+            </pattern>
+          </defs>
 
           <!-- BACKGROUND TREE -->
           <!-- ucdp nodes and links -->
@@ -680,8 +724,8 @@
   `}
             fill="none"
             stroke="#404040"
-            stroke-width="3"
-            stroke-opacity="0.5"
+            stroke-width="4"
+            stroke-opacity="0.7"
           />
           <path
             d={`
@@ -698,8 +742,8 @@
   `}
             fill="none"
             stroke="#404040"
-            stroke-width="3"
-            stroke-opacity="0.5"
+            stroke-width="4"
+            stroke-opacity="0.7"
           />
           {#each ucdpLinks as d}
             <path
@@ -709,7 +753,7 @@
         ${d.parent.x},${yCenter + d.parent.y}`}
               fill="none"
               stroke="#404040"
-              stroke-opacity="0.7"
+              stroke-opacity="0.4"
               stroke-width="1"
             />
           {/each}
@@ -718,11 +762,11 @@
               <circle
                 cx="0"
                 cy="0"
-                r={d.data.name == "__ucdp_root__" ? 8 : 0}
+                r={d.data.name == "__ucdp_root__" ? 5 : 0}
                 fill={d.data.name == "__ucdp_root__" ? "gray" : "none"}
               ></circle>
               {#if d.data.name == "__ucdp_root__"}
-                <text
+                <!-- <text
                   x="10"
                   y="0"
                   font-size="10"
@@ -730,7 +774,7 @@
                   text-anchor="start"
                 >
                   UCDP/ACLED
-                </text>
+                </text> -->
               {/if}
             </g>
           {/each}
@@ -847,11 +891,10 @@
             <g transform={`translate(${d.x}, ${yCenter + d.y})`}>
               {#if firstNodeByLevelDown.get(d.revealLevel) === d}
                 <text
-                  x={-8}
-                  y={0}
+                  x={-10}
+                  y={3}
                   font-size="10"
                   fill="white"
-                  transform="rotate(35)"
                   text-anchor="end"
                 >
                   {d.data.name.charAt(0).toUpperCase() + d.data.name.slice(1)}
@@ -861,7 +904,7 @@
                 cx="0"
                 cy="0"
                 r="3"
-                fill="#bfbfbf"
+                fill="white"
                 tabindex="0"
                 role="button"
                 aria-label="Node details"
@@ -917,7 +960,7 @@
               stroke-linecap="round"
             />
           {/if}
-          {#if currentLevelUp >= 11}
+          {#if currentLevelUp >= 11 && currentLevelUp < 13}
             <path
               d={progPathFirst}
               fill="none"
@@ -927,7 +970,7 @@
               stroke-linecap="round"
             />
           {/if}
-          {#if currentLevelUp >= 12}
+          {#if currentLevelUp >= 12 && currentLevelUp < 14}
             <path
               d={visPathFirst}
               fill="none"
@@ -947,9 +990,19 @@
               stroke-linecap="round"
             />
           {/if}
-          {#if currentLevelUp >= 14}
+          {#if currentLevelUp >= 14 && currentLevelUp < 15}
             <path
               d={visPathSecond}
+              fill="none"
+              stroke="white"
+              stroke-width="30"
+              stroke-opacity="0.2"
+              stroke-linecap="round"
+            />
+          {/if}
+          {#if currentLevelUp >= 15}
+            <path
+              d={visPathThird}
               fill="none"
               stroke="white"
               stroke-width="30"
@@ -1023,11 +1076,10 @@
             <g transform={`translate(${d.x}, ${yCenter - d.y})`}>
               {#if labelConfig.has(d.data.name)}
                 <text
-                  x={labelConfig.get(d.data.name).x}
-                  y={10}
+                  x={labelConfig.get(d.data.name).x + 10}
+                  y={0}
                   font-size="10"
                   fill="white"
-                  transform="rotate(-35)"
                 >
                   {d.data.name}
                 </text>
@@ -1046,17 +1098,9 @@
                 </text>
               {/if}
               {#if d.data.name == "PeaceFem"}
-                <text
-                  x={20}
-                  y={5}
-                  font-size="10"
-                  fill="white"
-                  transform={"rotate(-35)"}
-                >
-                  App
-                </text>
+                <text x={20} y={5} font-size="10" fill="white"> App </text>
               {/if}
-              {#if d.data.name == "Data Overview"}
+              {#if d.data.name == "Data Overview" && currentLevelUp < 15}
                 <text
                   x={20}
                   y={5}
@@ -1079,35 +1123,15 @@
                 </text>
               {/if}
               {#if d.data.label == "Quality Control"}
-                <text
-                  x={20}
-                  y={5}
-                  font-size="10"
-                  fill="white"
-                  transform={"rotate(-35)"}
-                >
+                <text x={20} y={5} font-size="10" fill="white">
                   Quality Control
                 </text>
               {/if}
               {#if d.data.label == "Coding"}
-                <text
-                  x={20}
-                  y={5}
-                  font-size="10"
-                  fill="white"
-                  transform={"rotate(-35)"}
-                >
-                  Coding
-                </text>
+                <text x={20} y={5} font-size="10" fill="white"> Coding </text>
               {/if}
               {#if d.data.name == "PAA-X"}
-                <text
-                  x={20}
-                  y={5}
-                  font-size="10"
-                  fill="white"
-                  transform={"rotate(-35)"}
-                >
+                <text x={20} y={5} font-size="10" fill="white">
                   Databases
                 </text>
               {/if}
@@ -1133,7 +1157,7 @@
                   Infographics
                 </text>
               {/if}
-              {#if d.data.name == "Python"}
+              {#if d.data.name == "Python" && currentLevelUp < 13}
                 <text
                   x={20}
                   y={5}
@@ -1144,7 +1168,7 @@
                   Programming
                 </text>
               {/if}
-              {#if d.data.name == "Network"}
+              {#if d.data.name == "Network" && currentLevelUp < 14}
                 <text
                   x={20}
                   y={5}
@@ -1161,7 +1185,7 @@
                 cx="0"
                 cy="0"
                 r="8"
-                fill="#bfbfbf"
+                fill="white"
                 tabindex="0"
                 role="button"
                 aria-label="Node details"
@@ -1182,43 +1206,10 @@
                     Math.cos(((-90 + ((i % 12) + 1) * 30) * Math.PI) / 180)}
                   cy={(orbitRadius + ringGap * Math.floor(i / 12)) *
                     Math.sin(((-90 + ((i % 12) + 1) * 30) * Math.PI) / 180)}
-                  r="2"
+                  r="1.5"
                   fill="white"
                 />
               {/each}
-
-              {#if d.data.name == "Research"}
-                <circle cx="0" cy="0" r="15" fill="white" opacity="0.2"
-                ></circle>
-              {/if}
-              {#if d.data.name == "PeaceFem"}
-                <circle cx="0" cy="0" r="15" fill="white" opacity="0.2"
-                ></circle>
-              {/if}
-              {#if d.data.name == "Tracker"}
-                <circle
-                  class="trackerCircle"
-                  cx="0"
-                  cy="0"
-                  r="15"
-                  fill="white"
-                  opacity="0.2"
-                ></circle>
-              {/if}
-              {#if d.data.name == "Infographics"}
-                <circle cx="0" cy="0" r="15" fill="white" opacity="0.2"
-                ></circle>
-              {/if}
-              {#if d.data.name == "PBi"}
-                <circle
-                  class="pbiCircle"
-                  cx="0"
-                  cy="0"
-                  r="15"
-                  fill="white"
-                  opacity="0.2"
-                ></circle>
-              {/if}
             </g>
           {/each}
         </g>
@@ -1242,18 +1233,10 @@
             style="flex: 1; border-right: 1px solid rgba(128, 128, 128, 0.333);"
           >
             <svg width="100%" height="100%" preserveAspectRatio="none">
-              <g transform={`translate(16, ${segment_height / 2})`}>
-                <text x="15" y="-15" font-size="12" fill="white"
+              <g transform={`translate(5, 5)`}>
+                <text x="10" y="15" font-size="12" fill="white"
                   >{d.data.name}</text
                 >
-                <line
-                  x1="1"
-                  y1="-32"
-                  x2="1"
-                  y2={segment_height - 24}
-                  stroke="orange"
-                  stroke-width="3"
-                />
                 <!-- {#if d.data.type === 'vis'}
 									<Icons {d} which_icon="img/vis.png" />
 								{:else if d.data.type == 'db'}
@@ -1291,14 +1274,6 @@
                     ></div>
                   </foreignObject>
                 {/each}
-                <line
-                  x1="20"
-                  y1="15"
-                  x2={100}
-                  y2="15"
-                  stroke="white"
-                  stroke-width="1"
-                />
               </g>
             </svg>
           </div>
@@ -1331,6 +1306,7 @@
   }
 
   #step_description {
+    visibility: hidden;
     position: absolute;
     top: 70%;
     left: 50%;

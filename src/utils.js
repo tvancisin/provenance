@@ -475,83 +475,99 @@ export let steps = {
       step_id: "1",
       type: "conflicts",
       description:
-        "First real life events captured in some way by the PA-X Database are the conflict events themselves. A conflict is defined in PA-X as armed violence, causing more than 25 conflict-related deaths in one year.",
+        `First real life events captured in some way by the PA-X Database are 
+        armed conflicts around the world. As you can see, different number of conflicts 
+        and the subsequent peace processes take place in different parts of the world.`,
     },
     {
       step_id: "2",
       type: "negotiations",
       description:
-        "Peace negotiations take place in peace processes - these are formal attempts to bring political and/or military protagonists of conflict, to some sort of mutual agreement as to how to end the conflict.",
+        `Peace negotiations are formal attempts to bring political and/or military 
+        protagonists of conflict, to some sort of mutual agreement as to how to 
+        end the conflict. However, not all conflicts lead to negotiations, and not all 
+        negotiations lead to agreements.`,
     },
     {
       step_id: "3",
       type: "peace_agreements",
       description:
-        "If peace negotiations reach a formal agreement, which is not the case for all negotiations, it results in a signed peace agreement.",
+        `If peace negotiations reach a formal agreement, it results in a signed peace agreement. 
+        This is where PA-X steps in. PA-X collects formal, signed, written, and publicly 
+        available peace agreements that address conflicts with more than 25 conflict 
+        related deaths in a year.`,
     },
     {
       step_id: "4",
-      type: "collection",
+      type: "translation",
       description:
-        "PA-X collects formal, signed, written, and publicly available peace agreements that address conflicts with more than 25 conflict related deaths in a year.",
+        `Peace agreements are often written in local languages and in these cases, 
+        the documents are translated into English by domain and language experts.`,
     },
     {
       step_id: "5",
-      type: "translation",
+      type: "transcription",
       description:
-        "Peace agreements are often written in local languages and in these cases, the documents are translated into English by domain and language experts.",
+        `The agreements come in various formats (PDF, Word, Images, Tweets) and 
+        the text therefore often needs to be transcribed into plain text.`,
     },
     {
       step_id: "6",
-      type: "transcription",
+      type: "pax_coding",
       description:
-        "The agreements come in various formats (PDF, Word, Images, Tweets) and the the text therefore often needs to be transcribed into plain text.",
+        `The plain text of the agreement then gets tagged into topics covered within. 
+        These include categories like Socio-economic Development, Political or Military 
+        Powersharing, Gender etc.`,
     },
     {
       step_id: "7",
-      type: "pax_coding",
+      type: "pax_quality_control",
       description:
-        "The plain text of the agreement then gets tagged into topics covered within. These include categories like Socio-economic Development, to Political or Military Powersharing, Gender etc.",
+        `The tagged text goes through quality control to ensure 
+        the coding is consistent with defintions of the topics across versions.`,
     },
     {
       step_id: "8",
-      type: "pax_quality_control",
+      type: "pax_database",
       description:
-        "The tagged text goes through quality control by the PA-X Data Manager to ensure the coding is consistent with defintions of the topics across versions.",
+        `Once the data is approved and quality checks are resolved, the data is published 
+        in the database as a new version of PA-X. On average, 50 new agreements are added 
+        per version which is updated annually.`,
     },
     {
       step_id: "9",
-      type: "pax_database",
+      type: "research/further_coding/d3_programming/tracker_visualization/infographics",
       description:
-        "Once the data is approved and quality checks are resolved, the data is published in the database as a new version of PA-X. On average, 50 new agreements are added per version which is updated annually.",
+        `Agreements that include references to gender, local conflict, children & youth, 
+        or third parties, are further coded in to more depth. For example, in main PA-X Gender is coded at a high level. 
+        In PA-X Gender, topics are much more detailed in relation to gender for example if the 
+        mention is regarding violence against women, womens involvement in implementation or 
+        rights-institutions.`
     },
     {
       step_id: "10",
-      type: "research/further_coding/d3_programming/tracker_visualization/infographics",
-      description:
-        "Immediate key insights and statistics from PA-X data can be made into infographics/visualizations to communicate the key trends to a wide audience.",
+      type: "sub-database quality control",
+      description: `To ensure coding consistency and 
+      reliability, the sub-theme tagging undergoes further quality control.`,
     },
     {
       step_id: "11",
-      type: "publications/further_quality_control/visualization",
-      description: "Publications",
+      type: "sub_databases",
+      description:
+        `As in the case of the main PA-X database, once the data is approved, it is 
+        published in PA-X Gender, PA-X Local, PA-X Children & Youth, 
+        and PAA-X Third Parties databases.`,
     },
     {
       step_id: "12",
-      type: "sub_databases",
-      description:
-        "For agreements that include certain content - such as gender references, or if they address local conflicts they are entered into PA-X sub-databases (PA-X Gender or PA-X Local). These agreements are then coded with domain-specific/relevant topics that go in to more depth. For example, in main PA-X Gender is coded at a high level. In PA-X Gender, topics are much more detailed in relation to gender for example if the mention is regarding violence against women, womens involvement in implementation or rights-institutions.",
+      type: "d3_programming/peacefem_app/visualization",
+      description: `Research`,
     },
     {
       step_id: "13",
-      type: "d3_programming/peacefem_app/visualization",
-      description: "Programming",
-    },
-    {
-      step_id: "14",
       type: "visualization",
       description:
-        "Visualizations are developed to convey key findings and trends from the data, to allow users to analyse the data themselves, or to track changes over time, space or stage of process.",
+        `Publications`,
     },
   ],
 };
