@@ -128,6 +128,7 @@ let original_data = {
                                   url: "img/gender_db.png",
                                   link: "https://pax.peaceagreements.org/agreements/wggsearch/",
                                   children: [
+                                    { name: "PeaceFem", step: 12, type: "app" },
                                     {
                                       name: "d3",
                                       step: 11,
@@ -149,7 +150,6 @@ let original_data = {
                                         },
                                       ],
                                     },
-                                    { name: "PeaceFem", step: 12 },
                                   ],
                                 },
                               ],

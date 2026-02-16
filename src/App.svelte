@@ -11,8 +11,8 @@
 
   let width,
     height,
-    orbitRadius = 11,
-    ringGap = 4,
+    orbitRadius = 14,
+    ringGap = 4.5,
     details_width = 1,
     details_data = [],
     clicked = null,
@@ -623,6 +623,23 @@
   $: yt2 = yCenter + ucdp_root.y;
 
   $: console.log(currentLevelUp);
+  // Map node name or label to text content and optional rotation
+  const labelMap = new Map([
+    ["Tracker", { text: "Visualization", rotate: -45 }],
+    ["PeaceFem", { text: "App", rotate: -45 }],
+    ["Data Overview", { text: "Visualization", rotate: -45, maxLevel: 15 }],
+    ["PAA-X", { text: "Databases" }],
+    ["Python", { text: "Programming", rotate: -45, maxLevel: 13 }],
+    ["Network", { text: "Visualization", rotate: -45, maxLevel: 14 }],
+  ]);
+
+  const labelByCategory = new Map([
+    ["paper", { text: "Publications", rotate: -45 }],
+    ["Programming", { text: "Programming", rotate: -45 }],
+    ["Quality Control", { text: "Quality Control" }],
+    ["Coding", { text: "Coding" }],
+    ["Infographics", { text: "Infographics", rotate: -45 }],
+  ]);
 </script>
 
 <div id="wrapper" bind:clientWidth={width} bind:clientHeight={height}>
@@ -640,73 +657,6 @@
     {#if width !== undefined || height !== undefined}
       <svg {width} {height}>
         <g transform={`translate(${margin.right}, ${margin.top})`}>
-          <!-- textures -->
-          <defs>
-            <pattern
-              id="diagonalHatch"
-              patternUnits="userSpaceOnUse"
-              width="8"
-              height="8"
-              patternTransform="rotate(45)"
-            >
-              <line
-                x1="0"
-                y1="0"
-                x2="0"
-                y2="8"
-                stroke="white"
-                stroke-width="2"
-              />
-            </pattern>
-            <pattern
-              id="diagonalMirrorHatch"
-              patternUnits="userSpaceOnUse"
-              width="8"
-              height="8"
-              patternTransform="rotate(-45)"
-            >
-              <line
-                x1="0"
-                y1="0"
-                x2="0"
-                y2="8"
-                stroke="white"
-                stroke-width="2"
-              />
-            </pattern>
-            <pattern
-              id="texCross"
-              patternUnits="userSpaceOnUse"
-              width="8"
-              height="8"
-            >
-              <line
-                x1="0"
-                y1="0"
-                x2="0"
-                y2="8"
-                stroke="white"
-                stroke-width="1.5"
-              />
-              <line
-                x1="0"
-                y1="0"
-                x2="8"
-                y2="0"
-                stroke="white"
-                stroke-width="1.5"
-              />
-            </pattern>
-            <pattern
-              id="tex-dots"
-              patternUnits="userSpaceOnUse"
-              width="10"
-              height="10"
-            >
-              <circle cx="5" cy="5" r="2" fill="white" />
-            </pattern>
-          </defs>
-
           <!-- BACKGROUND TREE -->
           <!-- ucdp nodes and links -->
           <path
@@ -848,7 +798,19 @@
           {/each}
           {#each nodesUp as d}
             <g transform={`translate(${d.x}, ${yCenter - d.y})`}>
-              <circle cx="0" cy="0" r="8" fill="gray"></circle>
+              {#if d.data.type == "vis" || d.data.type == "db" || d.data.type == "paper" || d.data.type == "app" || d.data.type == "pdf"}
+                <rect
+                  x="-8"
+                  y="-8"
+                  rx="2"
+                  width="16"
+                  height="16"
+                  fill="#cccccc"
+                  transform="rotate(45, 0, 0)"
+                />
+              {:else}
+                <circle cx="0" cy="0" r="8" fill="gray"></circle>
+              {/if}
             </g>
           {/each}
           {#each nodesDown as d, i}
@@ -893,7 +855,7 @@
                 <text
                   x={-10}
                   y={3}
-                  font-size="10"
+                  font-size="12"
                   fill="white"
                   text-anchor="end"
                 >
@@ -1078,126 +1040,96 @@
                 <text
                   x={labelConfig.get(d.data.name).x + 10}
                   y={0}
-                  font-size="10"
+                  font-size="12"
                   fill="white"
+                >
+                  {d.data.name}
+                </text>
+              {:else if currentLevelUp >= 6 && d.data.name !== "Infographics"}
+                <text
+                  x={-5}
+                  y={-20}
+                  font-size="10"
+                  fill="gray"
+                  opacity="0.7"
+                  transform="rotate(-45)"
+                  text-anchor="start"
                 >
                   {d.data.name}
                 </text>
               {/if}
 
-              <!-- label -->
-              {#if d.data.name == "Tracker"}
+              <!-- generalized label rendering -->
+              {#if d.data.name && labelMap.has(d.data.name)}
+                {#if !labelMap.get(d.data.name).maxLevel || currentLevelUp < labelMap.get(d.data.name).maxLevel}
+                  <text
+                    x={20}
+                    y={5}
+                    font-size="12"
+                    fill="white"
+                    transform={labelMap.get(d.data.name).rotate
+                      ? `rotate(${labelMap.get(d.data.name).rotate})`
+                      : undefined}
+                  >
+                    {labelMap.get(d.data.name).text}
+                  </text>
+                {/if}
+              {:else if d.data.label && labelByCategory.has(d.data.label)}
                 <text
                   x={20}
                   y={5}
-                  font-size="10"
+                  font-size="12"
                   fill="white"
-                  transform={"rotate(-35)"}
+                  transform={labelByCategory.get(d.data.label).rotate
+                    ? `rotate(${labelByCategory.get(d.data.label).rotate})`
+                    : undefined}
                 >
-                  Visualization
-                </text>
-              {/if}
-              {#if d.data.name == "PeaceFem"}
-                <text x={20} y={5} font-size="10" fill="white"> App </text>
-              {/if}
-              {#if d.data.name == "Data Overview" && currentLevelUp < 15}
-                <text
-                  x={20}
-                  y={5}
-                  font-size="10"
-                  fill="white"
-                  transform={"rotate(-35)"}
-                >
-                  Visualization
-                </text>
-              {/if}
-              {#if d.data.label == "Programming"}
-                <text
-                  x={20}
-                  y={5}
-                  font-size="10"
-                  fill="white"
-                  transform={"rotate(-35)"}
-                >
-                  Programming
-                </text>
-              {/if}
-              {#if d.data.label == "Quality Control"}
-                <text x={20} y={5} font-size="10" fill="white">
-                  Quality Control
-                </text>
-              {/if}
-              {#if d.data.label == "Coding"}
-                <text x={20} y={5} font-size="10" fill="white"> Coding </text>
-              {/if}
-              {#if d.data.name == "PAA-X"}
-                <text x={20} y={5} font-size="10" fill="white">
-                  Databases
-                </text>
-              {/if}
-              {#if d.data.label == "paper"}
-                <text
-                  x={20}
-                  y={5}
-                  font-size="10"
-                  fill="white"
-                  transform={"rotate(-35)"}
-                >
-                  Publications
-                </text>
-              {/if}
-              {#if d.data.label == "Infographics"}
-                <text
-                  x={20}
-                  y={5}
-                  font-size="10"
-                  fill="white"
-                  transform={"rotate(-35)"}
-                >
-                  Infographics
-                </text>
-              {/if}
-              {#if d.data.name == "Python" && currentLevelUp < 13}
-                <text
-                  x={20}
-                  y={5}
-                  font-size="10"
-                  fill="white"
-                  transform={"rotate(-35)"}
-                >
-                  Programming
-                </text>
-              {/if}
-              {#if d.data.name == "Network" && currentLevelUp < 14}
-                <text
-                  x={20}
-                  y={5}
-                  font-size="10"
-                  fill="white"
-                  transform={"rotate(-35)"}
-                >
-                  Visualization
+                  {labelByCategory.get(d.data.label).text}
                 </text>
               {/if}
 
-              <!-- main circle -->
-              <circle
-                cx="0"
-                cy="0"
-                r="8"
-                fill="white"
-                tabindex="0"
-                role="button"
-                aria-label="Node details"
-                on:mouseenter={() => handleHoverEvent({ node: d })}
-                on:mouseleave={() => handleHoverEvent({ node: null })}
-                on:click={() => handleClickEvents({ node: d })}
-                on:keydown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    handleClickEvents({ node: d });
-                  }
-                }}
-              ></circle>
+              {#if d.data.type == "vis" || d.data.type == "db" || d.data.type == "paper" || d.data.type == "app" || d.data.type == "pdf"}
+                <!-- rectangle for PA-X -->
+                <rect
+                  x="-8"
+                  y="-8"
+                  rx="2"
+                  width="16"
+                  height="16"
+                  fill="white"
+                  transform="rotate(45, 0, 0)"
+                  tabindex="0"
+                  role="button"
+                  aria-label="Node details"
+                  on:mouseenter={() => handleHoverEvent({ node: d })}
+                  on:mouseleave={() => handleHoverEvent({ node: null })}
+                  on:click={() => handleClickEvents({ node: d })}
+                  on:keydown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      handleClickEvents({ node: d });
+                    }
+                  }}
+                />
+              {:else}
+                <!-- circle for other nodes -->
+                <circle
+                  cx="0"
+                  cy="0"
+                  r="8"
+                  fill="white"
+                  tabindex="0"
+                  role="button"
+                  aria-label="Node details"
+                  on:mouseenter={() => handleHoverEvent({ node: d })}
+                  on:mouseleave={() => handleHoverEvent({ node: null })}
+                  on:click={() => handleClickEvents({ node: d })}
+                  on:keydown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      handleClickEvents({ node: d });
+                    }
+                  }}
+                />
+              {/if}
 
               <!-- people circles -->
               {#each Array(d.data.ppl) as _, i}
@@ -1206,8 +1138,8 @@
                     Math.cos(((-90 + ((i % 12) + 1) * 30) * Math.PI) / 180)}
                   cy={(orbitRadius + ringGap * Math.floor(i / 12)) *
                     Math.sin(((-90 + ((i % 12) + 1) * 30) * Math.PI) / 180)}
-                  r="1.5"
-                  fill="white"
+                  r="2"
+                  fill="#ffff66"
                 />
               {/each}
             </g>
