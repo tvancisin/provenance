@@ -11,6 +11,20 @@
     setUniformY,
   } from "./utils";
 
+  // on the tree make sure the number of projects stemming
+  // from the database is important to show
+  // so the paax got 4 projects (including tracker))
+  // then gender
+  // then youth
+  // or that the thickness refers to the number of projects stemming from the database
+  // so paax path thickest, then gender,...
+  // how many overall at each level? side bar number of deaths for conflict,
+  // number of people negotiating , number of people signing,
+  //                             iii collecting
+  //                         iiiiiii agmts
+  //                           iiiii negotioations
+  // iiiiiiiiiiiiiiiiiiiiiiiiiiiiiii deaths
+
   let width,
     height,
     details_width = 1,
@@ -98,7 +112,7 @@
     return false;
   }
 
-  //////////////////////////////// compute layout and positions 
+  //////////////////////////////// compute layout and positions
   $: {
     upwardCluster(rootUp);
     downwardCluster(rootDown);
@@ -113,7 +127,7 @@
       .find((d) => d.data.name === "Collect");
     rootDown.x = collectNode.x;
     rootUp.y = 0;
-    ucdpDown.x = innerWidth / 1.5;
+    ucdpDown.x = innerWidth / 1.2;
     ucdpDown.y -= 20;
 
     // positioning of the upward tree nodes
@@ -154,8 +168,6 @@
     }
 
     // position peacefem and youth to the top level
-    peacefem = rootUp.descendants().find((d) => d.data.name === "PeaceFem");
-    tracker = rootUp.descendants().find((d) => d.data.name === "Tracker");
     let infographics = rootUp
       .descendants()
       .find((d) => d.data.name === "Infographics");
@@ -163,9 +175,6 @@
       .descendants()
       .find((d) => d.data.name === "Scrollytelling");
     let youth = rootUp.descendants().find((d) => d.data.name === "PBi Youth");
-    peacefem.y = gender.y;
-    youth.y = gender.y;
-    tracker.y = gender.y;
     infographics.y = gender.y;
     infographics.x += 20;
 
@@ -225,7 +234,6 @@
       // otherwise same pruning rule
       return !isInRemovedSubtree(d, removedAgreements);
     });
-
   }
 
   //////////////////////////////// reset to default
@@ -238,7 +246,7 @@
     d3.selectAll(".ind_line").style("opacity", 0.5);
   }
 
-  //////////////////////////////// node hover 
+  //////////////////////////////// node hover
   let highlightedLinks = new Set();
   function handleHoverEvent(e) {
     if (!clicked) {
@@ -269,7 +277,7 @@
     }
   }
 
-  //////////////////////////////// node click 
+  //////////////////////////////// node click
   let fullChain = [];
   function handleClickEvents(e) {
     d3.selectAll(".ind_line").style("opacity", 0);
@@ -305,7 +313,7 @@
     segment_height = (height - totalBorder) / fullChain.length;
   }
 
-  /////////////////////////////// gradual reveal logic 
+  /////////////////////////////// gradual reveal logic
   // revel doesn't work fir the agreement -> collection FIX !!!
   function downRevealLevel(d) {
     switch (d.data.name) {
@@ -370,14 +378,20 @@
     } else if (currentLevelUp === 8) {
       d3.select("#step_description").html(steps.workflow[10].description);
     } else if (currentLevelUp === 9) {
-      d3.selectAll(".sub_db_research").style("stroke", "#bfbfbf");
+      d3.selectAll(".sub_db_research, .research_link").style(
+        "stroke",
+        "#bfbfbf",
+      );
       d3.select("#step_description").remove();
       d3.select("#step_description").html(steps.workflow[11].description);
       d3.select(".progPathFirst").remove();
     } else if (currentLevelUp === 10) {
       d3.select("#step_description").html(steps.workflow[12].description);
       d3.selectAll(".visPathFirst, .pbiCircle").remove();
+    } else if (currentLevelUp === 15) {
+      d3.selectAll(".sub_vis_research").style("stroke", "#bfbfbf");
     } else if (currentLevelUp === 16) {
+      d3.selectAll(".ucdp_link").style("stroke", "#bfbfbf");
     }
   }
 
@@ -393,6 +407,7 @@
       <svg {width} {height}>
         <g transform={`translate(${margin.right}, ${margin.top})`}>
           <BackgroundTree
+            {currentLevelUp}
             {ucdpNodes}
             {nodesUp}
             {nodesDown}

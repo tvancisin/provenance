@@ -5,6 +5,7 @@
   export let nodesUp = [];
   export let nodesDown = [];
   export let regionLabels = [];
+  export let currentLevelUp;
   export let yCenter;
 
   $: researchNode = nodesUp.find((d) => d.data.name == "Research");
@@ -13,8 +14,6 @@
 
   $: visInfographics = nodesUp.find((d) => d.data.name == "Infographics");
   $: visFem = nodesUp.find((d) => d.data.name == "PeaceFem");
-  $: console.log(researchNode, visFem, subdatabaseNode2);
-
   $: linksUp = nodesUp.slice(1);
   $: linksDown = nodesDown.filter((d) => d.parent);
   $: ucdpLinks = ucdpNodes.filter((d) => d.parent);
@@ -85,6 +84,7 @@
   <path
     fill="none"
     stroke="gray"
+    class="sub_vis_research"
     stroke-width="5"
     stroke-dasharray="10 5"
     d={createBezierUp(researchNode, visFem, visInfographics)}
@@ -108,6 +108,7 @@
   fill="none"
   stroke="#404040"
   stroke-width="4"
+  class="ucdp_link"
   stroke-opacity="0.7"
 />
 <path
@@ -126,6 +127,7 @@
   fill="none"
   stroke="#404040"
   stroke-width="4"
+  class="ucdp_link"
   stroke-opacity="0.7"
 />
 {#each ucdpLinks as d}
@@ -137,6 +139,7 @@
     fill="none"
     stroke="#404040"
     stroke-opacity="0.4"
+    class="ucdp_link"
     stroke-width="1"
   />
 {/each}
@@ -145,19 +148,16 @@
     <circle
       cx="0"
       cy="0"
+      class="ucdp_link"
       r={d.data.name == "__ucdp_root__" ? 5 : 0}
       fill={d.data.name == "__ucdp_root__" ? "gray" : "none"}
     ></circle>
     {#if d.data.name == "__ucdp_root__"}
-      <!-- <text
-        x="10"
-        y="0"
-        font-size="10"
-        fill="white"
-        text-anchor="start"
-      >
-        UCDP/ACLED
-      </text> -->
+      {#if currentLevelUp >= 16}
+        <text x="10" y="0" font-size="10" fill="white" text-anchor="start">
+          UCDP/ACLED
+        </text>
+      {/if}
     {/if}
   </g>
 {/each}
@@ -206,12 +206,14 @@
                     ${d.parent.x},${yCenter - d.parent.y - 50}
                     ${d.parent.x},${yCenter - d.parent.y}`}
     fill="none"
+    stroke-linecap={d.data.name === "Research" ? "butt" : "round"}
     stroke={d.data.name === "Research" ? "gray" : "#005266"}
     stroke-dasharray={d.data.name === "Research" ? "10 5" : null}
+    class={d.data.name === "Research" ? "research_link" : ""}
     stroke-width={d.data.branch_type === "trunk"
-      ? 20
+      ? 19
       : d.data.branch_type === "upper_trunk"
-        ? 10
+        ? 15
         : d.data.branch_type === "uppest_trunk"
           ? 5
           : 2}
@@ -226,7 +228,7 @@
         ${d.parent.x},${yCenter + d.parent.y}`}
     fill="none"
     stroke="#005266"
-    stroke-width="1"
+    stroke-width="2"
   />
 {/each}
 {#each nodesUp as d}

@@ -27,20 +27,22 @@
   ]);
 
   const labelMap = new Map([
-    ["Tracker", { text: "Visualization", y: -20, rotate: -45 }],
-    ["PeaceFem", { text: "App", rotate: -45 }],
-    ["Data Overview", { text: "Visualization", maxLevel: 15, rotate: -45 }],
+    ["Tracker", { text: "Visualization", y: -10, maxLevel: 14, rotate: -45 }],
+    ["PeaceFem", { text: "App", y: -10, rotate: -45 }],
+    [
+      "Data Overview",
+      { text: "Visualization", y: -10, rotate: -45 },
+    ],
     ["PAA-X", { text: "Sub-Databases" }],
-    ["Python", { text: "Programming", maxLevel: 13, rotate: -45 }],
-    ["Network", { text: "Visualization", maxLevel: 14, rotate: -45 }],
+    ["Tracker Development", { text: "Development", maxLevel: 13, y: -10, rotate: -45 }],
   ]);
 
   const labelByCategory = new Map([
     ["paax_code", { text: "Code" }],
     ["paax_quality_control", { text: "Quality Control" }],
     ["conference", { text: "Publications", rotate: -45 }],
-    ["Programming", { text: "Programming" }],
-    ["Infographics", { text: "Infographics", rotate: -45 }],
+    ["prog_overview", { text: "Development", y: -20, rotate: -45 }],
+    ["pdf", { text: "Infographics", rotate: -45 }],
   ]);
 
   let visibleLinksDown = [];
@@ -122,36 +124,14 @@
     .descendants()
     .filter((d) => d.data.type === "prog" && d.parent.data.name !== "PA-X");
   $: paXProgFirst.sort((a, b) => a.x - b.x);
-  $: obstaclesProgFirst = rootUp
-    .descendants()
-    .filter(
-      (d) =>
-        !paXProgFirst.includes(d) &&
-        d.parent?.ancestors().some((a) => a.data.name === "PA-X"),
-    );
-  $: progPathFirst = generateDiagonalProgPath(
-    yCenter,
-    paXProgFirst,
-    obstaclesProgFirst,
-    40,
-  );
+  $: progPathFirst = generateDiagonalProgPath(yCenter, paXProgFirst, [], 40);
 
   // second layer of programming
-  $: paXProgSecond = rootUp.descendants().filter((d) => d.data.type === "prog");
-  $: paXProgSecond.sort((a, b) => a.x - b.x);
-  $: obstaclesProgSecond = rootUp
+  $: paXProgSecond = rootUp
     .descendants()
-    .filter(
-      (d) =>
-        !paXProgSecond.includes(d) &&
-        d.parent?.ancestors().some((a) => a.data.name === "PA-X"),
-    );
-  $: progPathSecond = generateDiagonalProgPath(
-    yCenter,
-    paXProgSecond,
-    obstaclesProgSecond,
-    40,
-  );
+    .filter((d) => d.data.type === "prog" || d.data.type === "prog_overview");
+  $: paXProgSecond.sort((a, b) => a.x - b.x);
+  $: progPathSecond = generateDiagonalProgPath(yCenter, paXProgSecond, [], 40);
 
   // first layer of vis connections
   $: paXVisNodes = rootUp.descendants().filter((d) => {
@@ -402,12 +382,12 @@
     stroke={highlightedLinks.has(`${d.parent.data.id}→${d.data.id}`)
       ? "#cc8500"
       : d.data.name === "Research"
-        ? "#bfbfbf"
+        ? ""
         : "#008fb3"}
     stroke-width={d.data.branch_type === "trunk"
-      ? 20
+      ? 19
       : d.data.branch_type === "upper_trunk"
-        ? 10
+        ? 15
         : d.data.branch_type === "uppest_trunk"
           ? 5
           : 2}
@@ -427,7 +407,7 @@
         {d.data.name}
       </text>
     {:else if currentLevelUp >= 6 && d.data.type?.slice(-2) === "db"}
-      <text
+      <!-- <text
         x={-5}
         y={-20}
         font-size="10"
@@ -437,14 +417,14 @@
         text-anchor="middle"
       >
         {d.data.name}
-      </text>
+      </text> -->
     {/if}
 
     {#if d.data.name && labelMap.has(d.data.name)}
       {#if !labelMap.get(d.data.name).maxLevel || currentLevelUp < labelMap.get(d.data.name).maxLevel}
         <text
           x={20}
-          y={labelMap.get(d.data.name).y ?? 5}
+          y={labelMap.get(d.data.name).y ?? 0}
           font-size="12"
           fill="white"
           transform={labelMap.get(d.data.name).rotate
@@ -457,11 +437,11 @@
     {:else if d.data.type && labelByCategory.has(d.data.type)}
       <text
         x={20}
-        y={5}
+        y={0}
         font-size="12"
         fill="white"
         transform={labelByCategory.get(d.data.type).rotate
-          ? `rotate(${labelByCategory.get(d.data.type).rotate}, 20, 5)`
+          ? `rotate(${labelByCategory.get(d.data.type).rotate}, -5, 5)`
           : null}
       >
         {labelByCategory.get(d.data.type).text}
@@ -516,7 +496,7 @@
         cy={(orbitRadius + ringGap * Math.floor(i / 12)) *
           Math.sin(((-90 + ((i % 12) + 1) * 30) * Math.PI) / 180)}
         r="2"
-        fill="#ffff66"
+        fill="white"
       />
     {/each}
   </g>
