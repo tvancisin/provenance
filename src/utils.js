@@ -5,99 +5,98 @@ let original_data = {
   step: 0,
   branch_type: "trunk",
   ppl: 1,
-  time: "20",
+  time: 20,
+  type: "pax_collect",
   children: [
     {
       name: "Translate",
       step: 1,
       branch_type: "trunk",
       ppl: 25,
-      time: "10",
-      url: "img/trans.png",
+      time: 10,
+      type: "pax_translate",
       children: [
         {
           name: "Transcribe",
           step: 2,
           branch_type: "trunk",
           ppl: 1,
-          time: "40",
+          time: 40,
+          type: "pax_transcribe",
           children: [
             {
-              name: "PA-X Code",
+              name: "Code",
               step: 3,
               branch_type: "trunk",
               ppl: 40,
-              time: "100",
-              url: "img/pax_code.png",
-              type: "code",
+              time: 100,
+              type: "pax_code",
               link: "https://pax.peaceagreements.org/media/documents/PA_X_codebook_v8.pdf",
               children: [
                 {
-                  name: "PA-X QC",
+                  name: "Quality Control",
                   step: 4,
                   branch_type: "trunk",
                   ppl: 7,
-                  time: "20",
-                  type: "quality_control",
+                  time: 20,
+                  type: "pax_quality_control",
                   children: [
                     {
                       name: "PA-X",
                       step: 5,
                       branch_type: "trunk",
-                      type: "db",
                       ppl: 3,
-                      time: "100",
-                      url: "img/pax_db.png",
+                      time: 100,
+                      type: "pax_db",
                       link: "https://pax.peaceagreements.org/agreements/search/",
                       children: [
                         {
                           name: "Research",
                           step: 9,
                           branch_type: "uppest_trunk",
-                          ppl: 10,
+                          ppl: 50,
+                          time: 100,
+                          type: "research",
                           children: [
                             {
                               name: "paper",
                               step: 10,
-                              type: "paper",
-                              ppl: 1,
-                              time: "2",
+                              branch_type: "leaf",
+                              ppl: 3,
+                              time: 10,
+                              type: "data_report",
                             },
                             {
                               name: "paper",
                               step: 10,
-                              type: "paper",
+                              branch_type: "leaf",
                               ppl: 1,
-                              time: "2",
+                              time: 10,
+                              type: "book",
                             },
                             {
                               name: "paper",
                               step: 10,
-                              type: "paper",
+                              branch_type: "leaf",
                               ppl: 1,
-                              time: "2",
+                              time: 10,
+                              type: "journal",
                             },
                             {
                               name: "paper",
                               step: 10,
-                              type: "paper",
+                              branch_type: "leaf",
                               ppl: 1,
-                              time: "2",
+                              time: 10,
+                              type: "blog",
                             },
                             {
                               name: "paper",
                               step: 10,
-                              type: "paper",
+                              branch_type: "leaf",
                               ppl: 1,
-                              time: "2",
-                            },
-                            {
-                              name: "paper",
-                              step: 10,
-                              label: "paper",
-                              type: "paper",
-                              ppl: 1,
-                              time: "2",
+                              time: 10,
+                              type: "conference",
                             },
                           ],
                         },
@@ -106,26 +105,25 @@ let original_data = {
                           step: 6,
                           branch_type: "upper_trunk",
                           ppl: 13,
-                          time: "50",
-                          type: "code",
-                          url: "img/gender_code.png",
+                          time: 50,
+                          type: "pax_gender_code",
                           link: "https://pax.peaceagreements.org/media/documents/PA_X_codebook_wgg_v8.pdf",
                           children: [
                             {
-                              name: "QC",
+                              name: "Quality Control",
                               step: 7,
                               branch_type: "upper_trunk",
-                              type: "quality_control",
                               ppl: 7,
+                              time: 20,
+                              type: "pax_gender_quality_control",
                               children: [
                                 {
                                   name: "PA-X Gender",
                                   step: 8,
                                   branch_type: "upper_trunk",
-                                  type: "db",
                                   ppl: 3,
-                                  time: "10",
-                                  url: "img/gender_db.png",
+                                  time: 10,
+                                  type: "pax_gender_db",
                                   link: "https://pax.peaceagreements.org/agreements/wggsearch/",
                                   children: [
                                     { name: "PeaceFem", step: 12, type: "app" },
@@ -161,21 +159,23 @@ let original_data = {
                           step: 6,
                           branch_type: "upper_trunk",
                           ppl: 2,
-                          type: "code",
+                          time: "100",
+                          type: "pax_children_code",
                           children: [
                             {
-                              name: "QC",
+                              name: "Quality Control",
                               step: 7,
                               branch_type: "upper_trunk",
                               ppl: 7,
-                              type: "quality_control",
+                              time: 20,
+                              type: "pax_children_quality_control",
                               children: [
                                 {
                                   name: "Children & Youth",
                                   step: 8,
                                   branch_type: "upper_trunk",
                                   ppl: 3,
-                                  type: "db",
+                                  type: "pax_children_db",
                                   children: [
                                     {
                                       name: "PBi Youth",
@@ -193,22 +193,24 @@ let original_data = {
                           name: "Code",
                           step: 6,
                           branch_type: "upper_trunk",
-                          type: "code",
                           ppl: 10,
+                          time: 100,
+                          type: "pax_local_code",
                           children: [
                             {
-                              name: "QC",
+                              name: "Quality Control",
                               step: 7,
                               branch_type: "upper_trunk",
                               ppl: 7,
-                              type: "quality_control",
+                              time: 20,
+                              type: "pax_local_quality_control",
                               children: [
                                 {
                                   name: "PA-X Local",
                                   step: 8,
                                   branch_type: "upper_trunk",
                                   ppl: 3,
-                                  type: "db",
+                                  type: "pax_local_db",
                                   children: [
                                     {
                                       name: "d3 local",
@@ -228,25 +230,26 @@ let original_data = {
                         {
                           name: "Code",
                           step: 6,
-                          label: "Coding",
                           branch_type: "upper_trunk",
-                          type: "code",
-                          ppl: 1,
+                          ppl: 2,
+                          time: 100,
+                          type: "paax_code",
                           children: [
                             {
-                              name: "QC",
+                              name: "Quality Control",
                               step: 7,
-                              label: "Quality Control",
                               branch_type: "upper_trunk",
                               ppl: 7,
-                              type: "quality_control",
+                              time: 20,
+                              type: "paax_quality_control",
                               children: [
                                 {
                                   name: "PAA-X",
                                   step: 8,
                                   branch_type: "upper_trunk",
-                                  type: "db",
-                                  ppl: 3,
+                                  ppl: 1,
+                                  time: 10,
+                                  type: "paax_db",
                                   children: [
                                     {
                                       name: "VUE",
@@ -476,26 +479,24 @@ export let steps = {
       type: "conflicts",
       description:
         `First real life events captured in some way by the PA-X Database are 
-        armed conflicts around the world. As you can see, different number of conflicts 
-        and the subsequent peace processes take place in different parts of the world.`,
+        armed conflicts. As you can see, there is a different number of conflicts 
+        (and the subsequent peace processes) taking place in different parts of the world.`,
     },
     {
       step_id: "2",
       type: "negotiations",
       description:
         `Peace negotiations are formal attempts to bring political and/or military 
-        protagonists of conflict, to some sort of mutual agreement as to how to 
-        end the conflict. However, not all conflicts lead to negotiations, and not all 
-        negotiations lead to agreements.`,
+        protagonists of conflict to a mutual agreement. However, not all conflicts 
+        lead to negotiations, and not all negotiations lead to agreements.`,
     },
     {
       step_id: "3",
       type: "peace_agreements",
       description:
-        `If peace negotiations reach a formal agreement, it results in a signed peace agreement. 
-        This is where PA-X steps in. PA-X collects formal, signed, written, and publicly 
-        available peace agreements that address conflicts with more than 25 conflict 
-        related deaths in a year.`,
+        `If peace negotiations lead to a signed peace agreement, PA-X collects it if 
+        it meets the following criteria: formal, signed, written, publicly available, 
+        addressing conflicts with more than 25 conflict related deaths in a year.`,
     },
     {
       step_id: "4",
@@ -508,7 +509,7 @@ export let steps = {
       step_id: "5",
       type: "transcription",
       description:
-        `The agreements come in various formats (PDF, Word, Images, Tweets) and 
+        `The agreements come in various formats (PDF, Word, Images) and 
         the text therefore often needs to be transcribed into plain text.`,
     },
     {
@@ -531,18 +532,14 @@ export let steps = {
       type: "pax_database",
       description:
         `Once the data is approved and quality checks are resolved, the data is published 
-        in the database as a new version of PA-X. On average, 50 new agreements are added 
-        per version which is updated annually.`,
+        in the database. On average, 50 new agreements are added annually.`,
     },
     {
       step_id: "9",
       type: "research/further_coding/d3_programming/tracker_visualization/infographics",
       description:
         `Agreements that include references to gender, local conflict, children & youth, 
-        or third parties, are further coded in to more depth. For example, in main PA-X Gender is coded at a high level. 
-        In PA-X Gender, topics are much more detailed in relation to gender for example if the 
-        mention is regarding violence against women, womens involvement in implementation or 
-        rights-institutions.`
+        or third parties, are further coded in more depth.`
     },
     {
       step_id: "10",
