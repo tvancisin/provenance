@@ -157,6 +157,7 @@ let original_data = {
                                         {
                                           name: "Scrollytelling",
                                           step: 12,
+                                          branch_type: "leaf",
                                           ppl: 4,
                                           time: "2",
                                           type: "vis",
@@ -277,7 +278,7 @@ let original_data = {
                               name: "Quality Control",
                               step: 7,
                               branch_type: "upper_trunk",
-                              ppl: 7,
+                              ppl: 2,
                               time: 20,
                               type: "paax_quality_control",
                               children: [
@@ -641,14 +642,17 @@ export let steps = {
     },
     {
       step_id: "12",
-      type: "d3_programming/peacefem_app/visualization",
-      description: `Research`,
+      type: "research",
+      description: `Information gathered in the core PA-X database and sub-databases, coupled
+      by the ability to query this information in novel and very flexible ways, 
+      subsequently inform peacebuilding research.`,
     },
     {
       step_id: "13",
-      type: "visualization",
+      type: "publications",
       description:
-        `Publications`,
+        `There are 5 types of publication outcomes that stem from this research: 
+        academic papers, books, journal articles, blogs, and conference publications.`,
     },
   ],
 };

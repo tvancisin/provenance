@@ -22,19 +22,19 @@
     ["pax_transcribe", { x: 12 }],
     ["pax_quality_control", { x: 12 }],
     ["pax_db", { x: 12 }],
-    ["research", { x: 22 }],
+    ["research", { x: 25 }],
     ["pax_code", { x: 25 }],
   ]);
 
   const labelMap = new Map([
     ["Tracker", { text: "Visualization", y: -10, maxLevel: 14, rotate: -45 }],
     ["PeaceFem", { text: "App", y: -10, rotate: -45 }],
-    [
-      "Data Overview",
-      { text: "Visualization", y: -10, rotate: -45 },
-    ],
+    ["Data Overview", { text: "Visualization", y: -10, rotate: -45 }],
     ["PAA-X", { text: "Sub-Databases" }],
-    ["Tracker Development", { text: "Development", maxLevel: 13, y: -10, rotate: -45 }],
+    [
+      "Tracker Development",
+      { text: "Development", maxLevel: 13, y: -10, rotate: -45 },
+    ],
   ]);
 
   const labelByCategory = new Map([
@@ -200,6 +200,51 @@
     visObstaclesThird,
     40,
   );
+
+  // Helper functions
+  function nodeRadius(ppl) {
+    const MIN_R = 5,
+      MAX_R = 28,
+      MAX_PPL = 50;
+    return MIN_R + (Math.sqrt(ppl) / Math.sqrt(MAX_PPL)) * (MAX_R - MIN_R);
+  }
+
+  function dotRadius(ppl) {
+    return Math.max(1.5, strokeWidth(ppl) / 2 - 1);
+  }
+
+  function getPeopleDots(ppl) {
+    const r = nodeRadius(ppl);
+    const dr = 2;
+    const gap = 1;
+    const dotSpacing = dr * 2 + gap;
+    const dotsPerRing = Math.max(1, Math.floor((2 * Math.PI * r) / dotSpacing));
+    const numRings = Math.ceil(ppl / dotsPerRing);
+
+    return Array.from({ length: ppl }, (_, i) => {
+      const ring = Math.floor(i / dotsPerRing);
+      const posInRing = i % dotsPerRing;
+      const angle = posInRing * ((2 * Math.PI) / dotsPerRing) - Math.PI / 2;
+      // center rings on r, expanding inward/outward symmetrically
+      const ringOffset = (ring - (numRings - 1) / 2) * dotSpacing;
+      const ringR = r + ringOffset;
+      return {
+        cx: ringR * Math.cos(angle),
+        cy: ringR * Math.sin(angle),
+      };
+    });
+  }
+
+  // stroke-width must fit all rings of dots
+  function strokeWidth(ppl) {
+    const r = nodeRadius(ppl);
+    const dr = 2;
+    const gap = 1;
+    const dotSpacing = dr * 2 + gap;
+    const dotsPerRing = Math.max(1, Math.floor((2 * Math.PI * r) / dotSpacing));
+    const numRings = Math.ceil(ppl / dotsPerRing);
+    return Math.max(6, numRings * dotSpacing + gap * 2); // padding of gap on each side
+  }
 </script>
 
 <!-- downward gradual links -->
@@ -212,7 +257,7 @@
     fill="none"
     stroke={highlightedLinks.has(`${d.parent.data.id}→${d.data.id}`)
       ? "#cc8500"
-      : "#008fb3"}
+      : "#00ccff"}
     stroke-width="1"
   />
 {/each}
@@ -225,20 +270,14 @@
         {d.data.name.charAt(0).toUpperCase() + d.data.name.slice(1)}
       </text>
     {/if}
-
-    {#if d.data.name === "agreement"}
-      <rect
-        x="-5"
-        y="-5"
-        width="10"
-        height="10"
-        rx="2"
-        fill="white"
-        transform="rotate(45, 0, 0)"
-      />
-    {:else}
-      <circle cx="0" cy="0" r="3" fill="white"></circle>
-    {/if}
+    <circle
+      cx="0"
+      cy="0"
+      r="3"
+      fill={d.data.name === "agreement" ? "white" : "#001C23"}
+      stroke="#00ccff"
+      stroke-width="2"
+    />
   </g>
 {/each}
 
@@ -383,11 +422,11 @@
       ? "#cc8500"
       : d.data.name === "Research"
         ? ""
-        : "#008fb3"}
+        : "#00CCFF"}
     stroke-width={d.data.branch_type === "trunk"
-      ? 19
+      ? 17
       : d.data.branch_type === "upper_trunk"
-        ? 15
+        ? 13
         : d.data.branch_type === "uppest_trunk"
           ? 5
           : 2}
@@ -396,8 +435,20 @@
 
 <!-- upward nodes -->
 {#each visibleNodesUp as d}
+  {@const r = nodeRadius(d.data.ppl)}
+  {@const sw = strokeWidth(d.data.ppl)}
+  {@const dots = getPeopleDots(d.data.ppl)}
   <g transform={`translate(${d.x}, ${yCenter - d.y})`}>
     {#if labelConfig.has(d.data.type)}
+      <rect
+        x={labelConfig.get(d.data.type).x + 8}
+        y={-10}
+        width={d.data.name.length * 7}
+        height={16}
+        fill="#001C23"
+        rx="3"
+        opacity="0.8"
+      />
       <text
         x={labelConfig.get(d.data.type).x + 10}
         y={0}
@@ -406,18 +457,56 @@
       >
         {d.data.name}
       </text>
-    {:else if currentLevelUp >= 6 && d.data.type?.slice(-2) === "db"}
-      <!-- <text
-        x={-5}
-        y={-20}
-        font-size="10"
-        fill="gray"
-        opacity="0.7"
-        transform="rotate(-45)"
-        text-anchor="middle"
+    {/if}
+
+    {#if d.data.name && labelMap.has(d.data.name)}
+      {#if !labelMap.get(d.data.name).maxLevel || currentLevelUp < labelMap.get(d.data.name).maxLevel}
+        {@const lm = labelMap.get(d.data.name)}
+        <rect
+          x={18}
+          y={(lm.y ?? 0) - 10}
+          width={lm.text.length * 7}
+          height={16}
+          fill="#001C23"
+          rx="3"
+          opacity="0.8"
+          transform={lm.rotate
+            ? `rotate(${lm.rotate}, 20, ${lm.y ?? 5})`
+            : null}
+        />
+        <text
+          x={20}
+          y={lm.y ?? 0}
+          font-size="12"
+          fill="white"
+          transform={lm.rotate
+            ? `rotate(${lm.rotate}, 20, ${lm.y ?? 5})`
+            : null}
+        >
+          {lm.text}
+        </text>
+      {/if}
+    {:else if d.data.type && labelByCategory.has(d.data.type)}
+      {@const lc = labelByCategory.get(d.data.type)}
+      <rect
+        x={18}
+        y={-10}
+        width={lc.text.length * 7}
+        height={16}
+        fill="#001C23"
+        rx="3"
+        opacity="0.8"
+        transform={lc.rotate ? `rotate(${lc.rotate}, -5, 5)` : null}
+      />
+      <text
+        x={20}
+        y={0}
+        font-size="12"
+        fill="white"
+        transform={lc.rotate ? `rotate(${lc.rotate}, -5, 5)` : null}
       >
-        {d.data.name}
-      </text> -->
+        {lc.text}
+      </text>
     {/if}
 
     {#if d.data.name && labelMap.has(d.data.name)}
@@ -448,55 +537,38 @@
       </text>
     {/if}
 
-    {#if d.data.type == "vis" || d.data.type == "db" || d.data.type == "paper" || d.data.type == "app" || d.data.type == "pdf"}
-      <rect
-        x="-8"
-        y="-8"
-        rx="2"
-        width="16"
-        height="16"
-        fill="white"
-        transform="rotate(45, 0, 0)"
-        tabindex="0"
-        role="button"
-        aria-label="Node details"
-        on:mouseenter={() => handleHoverEvent({ node: d })}
-        on:mouseleave={() => handleHoverEvent({ node: null })}
-        on:click={() => handleClickEvents({ node: d })}
-        on:keydown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            handleClickEvents({ node: d });
-          }
-        }}
-      />
-    {:else}
-      <circle
-        cx="0"
-        cy="0"
-        r="8"
-        fill="white"
-        tabindex="0"
-        role="button"
-        aria-label="Node details"
-        on:mouseenter={() => handleHoverEvent({ node: d })}
-        on:mouseleave={() => handleHoverEvent({ node: null })}
-        on:click={() => handleClickEvents({ node: d })}
-        on:keydown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            handleClickEvents({ node: d });
-          }
-        }}
-      />
-    {/if}
+    <circle
+      cx="0"
+      cy="0"
+      {r}
+      fill={d.data.name === "PA-X" ||
+      d.data.branch_type === "leaf" ||
+      d.data.type?.slice(-2) === "db"
+        ? "white"
+        : "#001C23"}
+      stroke="#00CCFF"
+      stroke-width={sw}
+      tabindex="0"
+      role="button"
+      aria-label="Node details"
+      on:mouseenter={() => handleHoverEvent({ node: d })}
+      on:mouseleave={() => handleHoverEvent({ node: null })}
+      on:click={() => handleClickEvents({ node: d })}
+      on:keydown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          handleClickEvents({ node: d });
+        }
+      }}
+    />
 
-    {#each Array(d.data.ppl) as _, i}
+    {#each dots as dot}
       <circle
-        cx={(orbitRadius + ringGap * Math.floor(i / 12)) *
-          Math.cos(((-90 + ((i % 12) + 1) * 30) * Math.PI) / 180)}
-        cy={(orbitRadius + ringGap * Math.floor(i / 12)) *
-          Math.sin(((-90 + ((i % 12) + 1) * 30) * Math.PI) / 180)}
+        cx={dot.cx}
+        cy={dot.cy}
         r="2"
-        fill="white"
+        fill="black"
+        opacity="0.85"
+        pointer-events="none"
       />
     {/each}
   </g>

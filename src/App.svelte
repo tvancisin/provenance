@@ -382,7 +382,6 @@
         "stroke",
         "#bfbfbf",
       );
-      d3.select("#step_description").remove();
       d3.select("#step_description").html(steps.workflow[11].description);
       d3.select(".progPathFirst").remove();
     } else if (currentLevelUp === 10) {
@@ -428,7 +427,7 @@
             {rootUp}
           />
         </g>
-        <Legend />
+        <Legend {currentLevelDown} />
       </svg>
     {/if}
   </div>
@@ -526,9 +525,9 @@
     position: absolute;
     top: 60%;
     left: 5px;
-    width: 250px;
+    width: 30%;
     color: rgb(255, 255, 255);
-    font-size: 12px;
+    font-size: 13px;
     background-color: #001c23;
     padding: 20px 20px;
     border-radius: 5px;

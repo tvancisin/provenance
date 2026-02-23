@@ -149,8 +149,10 @@
       cx="0"
       cy="0"
       class="ucdp_link"
-      r={d.data.name == "__ucdp_root__" ? 5 : 0}
-      fill={d.data.name == "__ucdp_root__" ? "gray" : "none"}
+      r={d.data.name == "__ucdp_root__" ? 7 : 0}
+      fill={d.data.name == "__ucdp_root__" ? "#001C23" : "none"}
+      stroke="#404040"
+      stroke-width="3"
     ></circle>
     {#if d.data.name == "__ucdp_root__"}
       {#if currentLevelUp >= 16}
@@ -211,7 +213,7 @@
     stroke-dasharray={d.data.name === "Research" ? "10 5" : null}
     class={d.data.name === "Research" ? "research_link" : ""}
     stroke-width={d.data.branch_type === "trunk"
-      ? 19
+      ? 15
       : d.data.branch_type === "upper_trunk"
         ? 15
         : d.data.branch_type === "uppest_trunk"
@@ -233,36 +235,30 @@
 {/each}
 {#each nodesUp as d}
   <g transform={`translate(${d.x}, ${yCenter - d.y})`}>
-    {#if d.data.type == "vis" || d.data.type == "db" || d.data.type == "paper" || d.data.type == "app" || d.data.type == "pdf"}
-      <rect
-        x="-8"
-        y="-8"
-        rx="2"
-        width="16"
-        height="16"
-        fill="gray"
-        transform="rotate(45, 0, 0)"
-      />
-    {:else}
-      <circle cx="0" cy="0" r="8" fill="gray"></circle>
-    {/if}
+    <circle
+      cx="0"
+      cy="0"
+      r="8"
+      fill={d.data.name === "PA-X" ||
+      d.data.branch_type === "leaf" ||
+      d.data.type?.slice(-2) === "db"
+        ? "white"
+        : "#001C23"}
+      stroke="#005266"
+      stroke-width="4"
+    />
   </g>
 {/each}
 {#each nodesDown as d, i}
   <g transform={`translate(${d.x}, ${yCenter + d.y})`}>
-    {#if d.data.name === "agreement"}
-      <rect
-        x="-5"
-        y="-5"
-        width="10"
-        height="10"
-        rx="2"
-        fill="gray"
-        transform="rotate(45, 0, 0)"
-      />
-    {:else}
-      <circle cx="0" cy="0" r="3" fill="gray"></circle>
-    {/if}
+    <circle
+      cx="0"
+      cy="0"
+      r="3"
+      fill={d.data.name === "agreement" ? "white" : "#001C23"}
+      stroke="#005266"
+      stroke-width="2"
+    />
   </g>
 {/each}
 
