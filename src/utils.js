@@ -652,7 +652,50 @@ export let steps = {
       type: "publications",
       description:
         `There are 5 types of publication outcomes that stem from this research: 
-        academic papers, books, journal articles, blogs, and conference publications.`,
+        <strong>academic papers, books, journal articles, blogs, and conference publications</strong>.`,
+    },
+    {
+      step_id: "14",
+      type: "development",
+      description:
+        `The machine-processable form of the information gathered in the sub-databases
+        also gives rise to the development of various visualizations and digital resources (PeaceTech).`,
+    },
+    {
+      step_id: "15",
+      type: "visualizations + app",
+      description:
+        `Interactive web-based visualizations and mobile apps allow to study peace processes 
+        in novel ways and to communicate research findings in more engaging and accessible formats.`,
+    },
+    {
+      step_id: "16",
+      type: "pax vis development",
+      description:
+        `As in the case of the sub-databases, the core PA-X database with machine-processable 
+        information and flexible querying capabilities enables the development of PeaceTech tools.`,
+    },
+    {
+      step_id: "17",
+      type: "pax vis",
+      description:
+        `These include Messy Timeline or Data Overview visualizations that provide entirely 
+        new perspectives on peace processes across the world.`,
+    },
+    {
+      step_id: "18",
+      type: "infographics",
+      description:
+        `PA-X is also used for the development of static infographics that provide easy entry 
+        points to the data and research findings and all these PeaceTech tools are then used 
+        to inform research into peacemaking.`,
+    },
+    {
+      step_id: "19",
+      type: "ucdp/acled",
+      description:
+        `What's important to emphasize is that the PA-X database is also used in conjunction 
+        with UCDP and ACLED data to provide a more complete picture of conflict and peace processes.`,
     },
   ],
 };

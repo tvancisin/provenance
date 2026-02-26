@@ -1,8 +1,10 @@
 <script>
   import * as d3 from "d3";
+  import { onMount, tick } from "svelte";
   import BackgroundTree from "./lib/BackgroundTree.svelte";
   import ForegroundTree from "./lib/ForegroundTree.svelte";
   import Legend from "./lib/Legend.svelte";
+  import Details from "./lib/Details.svelte";
   import {
     data,
     steps,
@@ -244,6 +246,7 @@
     clicked = null;
     highlightedLinks = new Set();
     d3.selectAll(".ind_line").style("opacity", 0.5);
+    d3.select("#step_description").style("visibility", "visible");
   }
 
   //////////////////////////////// node hover
@@ -280,6 +283,7 @@
   //////////////////////////////// node click
   let fullChain = [];
   function handleClickEvents(e) {
+    d3.select("#step_description").style("visibility", "hidden");
     d3.selectAll(".ind_line").style("opacity", 0);
     if (clicked == null) {
       innerWidth = width / 2 - margin.right;
@@ -387,14 +391,25 @@
     } else if (currentLevelUp === 10) {
       d3.select("#step_description").html(steps.workflow[12].description);
       d3.selectAll(".visPathFirst, .pbiCircle").remove();
+    } else if (currentLevelUp === 11) {
+      d3.select("#step_description").html(steps.workflow[13].description);
+    } else if (currentLevelUp === 12) {
+      d3.select("#step_description").html(steps.workflow[14].description);
+    } else if (currentLevelUp === 13) {
+      d3.select("#step_description").html(steps.workflow[15].description);
+    } else if (currentLevelUp === 14) {
+      d3.select("#step_description").html(steps.workflow[16].description);
+      d3.selectAll(".vis_link").style("stroke", "#bfbfbf");
     } else if (currentLevelUp === 15) {
+      d3.select("#step_description").html(steps.workflow[17].description);
       d3.selectAll(".sub_vis_research").style("stroke", "#bfbfbf");
     } else if (currentLevelUp === 16) {
       d3.selectAll(".ucdp_link").style("stroke", "#bfbfbf");
+      d3.select("#step_description").html(steps.workflow[18].description);
     }
   }
 
-  $: console.log(currentLevelUp);
+  // $: console.log(currentLevelUp);
 </script>
 
 <div id="wrapper" bind:clientWidth={width} bind:clientHeight={height}>
@@ -431,81 +446,7 @@
       </svg>
     {/if}
   </div>
-
-  <div id="details" style="margin-top: {0 + 'px'};">
-    {#each fullChain as d}
-      <a href={d.data.link} target="_blank">
-        <div
-          class="detail-segment"
-          style="
-			height: {segment_height}px;
-			width: {details_width}px;
-			display: flex;
-		  "
-        >
-          <div
-            class="segment-left"
-            style="flex: 1; border-right: 1px solid rgba(128, 128, 128, 0.333);"
-          >
-            <svg width="100%" height="100%" preserveAspectRatio="none">
-              <g transform={`translate(5, 5)`}>
-                <text x="10" y="15" font-size="12" fill="white"
-                  >{d.data.name}</text
-                >
-                <!-- {#if d.data.type === 'vis'}
-									<Icons {d} which_icon="img/vis.png" />
-								{:else if d.data.type == 'db'}
-									<Icons {d} which_icon="img/data.png" />
-								{:else if d.data.type == 'prog'}
-									<Icons {d} which_icon="img/prog.png" />
-								{:else if d.data.name == 'Collect'}
-									<Icons {d} which_icon="img/collect.png" />
-								{:else if d.data.name == 'Translate'}
-									<Icons {d} which_icon="img/translate.png" />
-								{:else if d.data.name == 'Transcribe'}
-									<Icons {d} which_icon="img/transcribe.png" />
-								{:else if d.data.name == 'Code'}
-									<Icons {d} which_icon="img/annotation.png" />
-								{:else if d.data.name == 'agt'}
-									<Icons {d} which_icon="img/agt.png" />
-								{:else if d.data.name == 'conflict'}
-									<Icons {d} which_icon="img/war.png" />
-								{:else}
-									<circle r="5" fill="gray" />
-								{/if} -->
-                {#each Array(d.data.ppl) as _, j}
-                  <foreignObject
-                    x={20 + j * 12}
-                    y={-8 + Math.random()}
-                    width="12"
-                    height="12"
-                    role="button"
-                    tabindex="0"
-                    aria-label="Icon"
-                  >
-                    <div
-                      class="icon"
-                      style={`background-image: url('img/person.png');`}
-                    ></div>
-                  </foreignObject>
-                {/each}
-              </g>
-            </svg>
-          </div>
-          <div
-            class="segment-right"
-            style="
-				  flex: 1;
-				  background-image: url('{d.data.url}');
-				  background-size: contain;
-				  <!-- background-repeat: no-repeat; -->
-				  background-position: center;
-				"
-          ></div>
-        </div>
-      </a>
-    {/each}
-  </div>
+  <Details {fullChain} {details_width} {segment_height} />
 </div>
 
 <style>
@@ -534,35 +475,7 @@
     z-index: 10;
   }
 
-  #details {
-    position: absolute;
-    top: 4px;
-    right: 0;
-  }
 
-  .detail-segment {
-    color: white;
-    display: flex;
-    background-color: #002731;
-    border-radius: 10px;
-    border: solid 2px rgba(106, 106, 106, 0.237);
-    transition: border-color 0.2s ease;
-  }
-
-  .detail-segment:hover {
-    border-color: rgba(255, 255, 255, 0.8);
-  }
-
-  .segment-left,
-  .segment-right {
-    flex: 1;
-    padding: 0;
-    box-sizing: border-box;
-  }
-
-  .segment-right {
-    border-radius: 10px;
-  }
 
   button {
     width: 50px;

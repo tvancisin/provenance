@@ -1,6 +1,5 @@
 <script>
   export let currentLevelDown;
-  $: console.log(currentLevelDown);
 </script>
 
 <!-- LEGEND -->
