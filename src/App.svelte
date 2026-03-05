@@ -282,6 +282,14 @@
 
   //////////////////////////////// node click
   let fullChain = [];
+
+  function getDetailSegmentWeight(node) {
+    const name = node?.data?.name;
+    return name === "agreement" || name === "negotiation" || name === "conflict"
+      ? 0.5
+      : 1;
+  }
+
   function handleClickEvents(e) {
     d3.select("#step_description").style("visibility", "hidden");
     d3.selectAll(".ind_line").style("opacity", 0);
@@ -303,18 +311,21 @@
     }
 
     while (downCurrent) {
-      console.log(downCurrent);
-
       downCurrentChain.push(downCurrent);
       downCurrent = downCurrent.children?.[0] || null;
     }
 
-    // Push the downCurrent chain in reverse order
     fullChain = fullChain.concat(downCurrentChain);
   }
-  $: if (fullChain.length > 1) {
-    const totalBorder = fullChain.length * 4;
-    segment_height = (height - totalBorder) / fullChain.length;
+  $: if (fullChain.length > 0) {
+    const availableHeight = Math.max(height ?? 0, 0);
+    const totalUnits = fullChain.reduce(
+      (sum, node) => sum + getDetailSegmentWeight(node),
+      0,
+    ) + 1;
+    segment_height = totalUnits > 0 ? availableHeight / totalUnits : 0;
+  } else {
+    segment_height = 0;
   }
 
   /////////////////////////////// gradual reveal logic
@@ -446,7 +457,12 @@
       </svg>
     {/if}
   </div>
-  <Details {fullChain} {details_width} {segment_height} />
+  <Details
+    {fullChain}
+    {details_width}
+    {segment_height}
+    innerHeight={height}
+  />
 </div>
 
 <style>

@@ -5,6 +5,9 @@ let original_data = {
   step: 0,
   branch_type: "trunk",
   ppl: 1,
+  expertise: 3,
+  errors: 3,
+  methods: ["web scrape", "news", "social media", "word of mouth", "email"],
   time: 20,
   type: "pax_collect",
   children: [
@@ -13,6 +16,9 @@ let original_data = {
       step: 1,
       branch_type: "trunk",
       ppl: 25,
+      expertise: 4,
+      errors: 4,
+      methods: ["web scrape", "news", "social media", "word of mouth", "email"],
       time: 10,
       type: "pax_translate",
       children: [
@@ -21,6 +27,7 @@ let original_data = {
           step: 2,
           branch_type: "trunk",
           ppl: 1,
+          expertise: 1,
           time: 40,
           type: "pax_transcribe",
           children: [
@@ -29,6 +36,7 @@ let original_data = {
               step: 3,
               branch_type: "trunk",
               ppl: 40,
+              expertise: 3,
               time: 100,
               type: "pax_code",
               link: "https://pax.peaceagreements.org/media/documents/PA_X_codebook_v8.pdf",
@@ -38,6 +46,7 @@ let original_data = {
                   step: 4,
                   branch_type: "trunk",
                   ppl: 7,
+                  expertise: 1,
                   time: 20,
                   type: "pax_quality_control",
                   children: [
