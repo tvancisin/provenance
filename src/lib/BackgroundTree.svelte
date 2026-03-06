@@ -1,5 +1,5 @@
 <script>
-  import { data } from "../utils";
+  import { getUpwardLinkPath } from "../utils";
 
   export let ucdpNodes = [];
   export let nodesUp = [];
@@ -166,47 +166,7 @@
 
 {#each linksUp as d}
   <path
-    d={d.data.name === "Research"
-      ? (() => {
-          const offset = Math.min(
-            50,
-            (yCenter - d.y - (yCenter - d.parent.y)) * 0.3,
-          );
-          const control = offset * 0.3;
-
-          return `M${d.x},${yCenter - d.y}
-                            L${d.x},${yCenter - d.parent.y + offset}
-                            C${d.x},${yCenter - d.parent.y + control}
-                             ${d.parent.x},${yCenter - d.parent.y + control}
-                             ${d.parent.x},${yCenter - d.parent.y}`;
-        })()
-      : (d.data.name === "d3" && d.parent.data.name === "PA-X") ||
-          d.data.name === "Tracker" ||
-          d.data.name === "Infographics"
-        ? (() => {
-            const baseOffset = Math.min(
-              50,
-              (yCenter - d.y - (yCenter - d.parent.y)) * 0.3,
-            );
-
-            const extraDown =
-              d.data.name === "Tracker" || d.data.name === "Infographics"
-                ? 20
-                : 0;
-
-            const offset = baseOffset + extraDown;
-            const control = offset * 0.3;
-
-            return `M${d.x},${yCenter - d.y}
-            L${d.x},${yCenter - d.parent.y + offset}
-            C${d.x},${yCenter - d.parent.y + control}
-             ${d.parent.x},${yCenter - d.parent.y + control}
-             ${d.parent.x},${yCenter - d.parent.y}`;
-          })()
-        : `M${d.x},${yCenter - d.y}
-                   C${d.x},${yCenter - d.parent.y - 20}
-                    ${d.parent.x},${yCenter - d.parent.y - 50}
-                    ${d.parent.x},${yCenter - d.parent.y}`}
+    d={getUpwardLinkPath(d, yCenter)}
     fill="none"
     stroke-linecap={d.data.name === "Research" ? "butt" : "round"}
     stroke={d.data.name === "Research" ? "gray" : "#005266"}

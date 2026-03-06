@@ -4,11 +4,11 @@ let original_data = {
   name: "Collect",
   step: 0,
   branch_type: "trunk",
-  ppl: 1,
+  ppl: 2,
   expertise: 3,
-  errors: 3,
+  errors: 1,
   methods: ["web scrape", "news", "social media", "word of mouth", "email"],
-  time: 20,
+  time: 10,
   type: "pax_collect",
   children: [
     {
@@ -17,17 +17,19 @@ let original_data = {
       branch_type: "trunk",
       ppl: 25,
       expertise: 4,
-      errors: 4,
-      methods: ["web scrape", "news", "social media", "word of mouth", "email"],
-      time: 10,
+      errors: 3,
+      methods: ["manual", "AI", "combination"],
+      time: 50,
       type: "pax_translate",
       children: [
         {
           name: "Transcribe",
           step: 2,
           branch_type: "trunk",
-          ppl: 1,
+          ppl: 2,
           expertise: 1,
+          errors: 3,
+          methods: ["OCR", "hand-typed", "copy-paste", "automatic extraction"],
           time: 40,
           type: "pax_transcribe",
           children: [
@@ -37,7 +39,9 @@ let original_data = {
               branch_type: "trunk",
               ppl: 40,
               expertise: 3,
-              time: 100,
+              errors: 3,
+              methods: ["manual", "AI-assisted", "combination"],
+              time: 90,
               type: "pax_code",
               link: "https://pax.peaceagreements.org/media/documents/PA_X_codebook_v8.pdf",
               children: [
@@ -47,6 +51,8 @@ let original_data = {
                   branch_type: "trunk",
                   ppl: 7,
                   expertise: 1,
+                  errors: 3,
+                  methods: ["ironout questions", "do as we code", "include if in doubt"],
                   time: 20,
                   type: "pax_quality_control",
                   children: [
@@ -55,7 +61,10 @@ let original_data = {
                       step: 5,
                       branch_type: "trunk",
                       ppl: 3,
-                      time: 100,
+                      expertise: 3,
+                      errors: 2,
+                      methods: ["manual", "automatic"],
+                      time: 30,
                       type: "pax_db",
                       link: "https://pax.peaceagreements.org/agreements/search/",
                       children: [
@@ -64,15 +73,21 @@ let original_data = {
                           step: 9,
                           branch_type: "uppest_trunk",
                           ppl: 50,
-                          time: 100,
+                          expertise: 5,
+                          errors: 3,
+                          methods: ["quantitative", "qualitative", "mixed"],
+                          time: 90,
                           type: "research",
                           children: [
                             {
                               name: "paper",
                               step: 10,
                               branch_type: "leaf",
-                              ppl: 3,
-                              time: 10,
+                              ppl: 10,
+                              expertise: 5,
+                              errors: 3,
+                              methods: ["quantitative", "qualitative", "mixed"],
+                              time: 30,
                               type: "data_report",
                             },
                             {
@@ -80,31 +95,43 @@ let original_data = {
                               step: 10,
                               branch_type: "leaf",
                               ppl: 1,
-                              time: 10,
+                              expertise: 5,
+                              errors: 3,
+                              methods: ["quantitative", "qualitative", "mixed"],
+                              time: 30,
                               type: "book",
                             },
                             {
                               name: "paper",
                               step: 10,
                               branch_type: "leaf",
-                              ppl: 1,
-                              time: 10,
+                              ppl: 10,
+                              expertise: 5,
+                              errors: 3,
+                              methods: ["quantitative", "qualitative", "mixed"],
+                              time: 30,
                               type: "journal",
                             },
                             {
                               name: "paper",
                               step: 10,
                               branch_type: "leaf",
-                              ppl: 1,
-                              time: 10,
+                              ppl: 10,
+                              expertise: 5,
+                              errors: 3,
+                              methods: ["quantitative", "qualitative", "mixed"],
+                              time: 30,
                               type: "blog",
                             },
                             {
                               name: "paper",
                               step: 10,
                               branch_type: "leaf",
-                              ppl: 1,
-                              time: 10,
+                              ppl: 10,
+                              expertise: 5,
+                              errors: 3,
+                              methods: ["quantitative", "qualitative", "mixed"],
+                              time: 30,
                               type: "conference",
                             },
                           ],
@@ -114,6 +141,9 @@ let original_data = {
                           step: 6,
                           branch_type: "upper_trunk",
                           ppl: 13,
+                          expertise: 3,
+                          errors: 3,
+                          methods: ["manual", "AI-assisted", "combination"],
                           time: 50,
                           type: "pax_gender_code",
                           link: "https://pax.peaceagreements.org/media/documents/PA_X_codebook_wgg_v8.pdf",
@@ -123,6 +153,9 @@ let original_data = {
                               step: 7,
                               branch_type: "upper_trunk",
                               ppl: 7,
+                              expertise: 1,
+                              errors: 3,
+                              methods: ["ironout questions", "do as we code", "include if in doubt"],
                               time: 20,
                               type: "pax_gender_quality_control",
                               children: [
@@ -131,6 +164,9 @@ let original_data = {
                                   step: 8,
                                   branch_type: "upper_trunk",
                                   ppl: 3,
+                                  expertise: 3,
+                                  errors: 2,
+                                  methods: ["manual", "automatic"],
                                   time: 10,
                                   type: "pax_gender_db",
                                   link: "https://pax.peaceagreements.org/agreements/wggsearch/",
@@ -139,8 +175,11 @@ let original_data = {
                                       name: "App Development",
                                       step: 11,
                                       branch_type: "uppest_trunk",
-                                      ppl: 2,
-                                      time: 10,
+                                      ppl: 4,
+                                      expertise: 2,
+                                      errors: 4,
+                                      methods: ["kotlin", "swift"],
+                                      time: 50,
                                       type: "prog",
                                       children: [
                                         {
@@ -148,7 +187,10 @@ let original_data = {
                                           step: 12,
                                           branch_type: "leaf",
                                           ppl: 4,
-                                          time: 2,
+                                          expertise: 2,
+                                          errors: 4,
+                                          methods: ["kotlin", "swift"],
+                                          time: 10,
                                           type: "app",
                                           link: "https://peacerep.org/digital-resources/peacefem/",
                                         },
@@ -159,7 +201,10 @@ let original_data = {
                                       step: 11,
                                       branch_type: "uppest_trunk",
                                       ppl: 1,
-                                      time: 3,
+                                      expertise: 3,
+                                      errors: 5,
+                                      methods: ["d3", "svelte", "git"],
+                                      time: 40,
                                       type: "prog",
                                       link: "https://github.com/tvancisin/pax_gender",
                                       children: [
@@ -168,7 +213,10 @@ let original_data = {
                                           step: 12,
                                           branch_type: "leaf",
                                           ppl: 4,
-                                          time: "2",
+                                          expertise: 3,
+                                          errors: 5,
+                                          methods: ["d3", "svelte", "git"],
+                                          time: 10,
                                           type: "vis",
                                           link: "https://tvancisin.github.io/pax_gender/",
                                         },
@@ -185,6 +233,9 @@ let original_data = {
                           step: 6,
                           branch_type: "upper_trunk",
                           ppl: 2,
+                          expertise: 3,
+                          errors: 3,
+                          methods: ["manual", "AI-assisted", "combination"],
                           time: 100,
                           type: "pax_children_code",
                           children: [
@@ -193,6 +244,9 @@ let original_data = {
                               step: 7,
                               branch_type: "upper_trunk",
                               ppl: 7,
+                              expertise: 1,
+                              errors: 3,
+                              methods: ["ironout questions", "do as we code", "include if in doubt"],
                               time: 20,
                               type: "pax_children_quality_control",
                               children: [
@@ -201,6 +255,9 @@ let original_data = {
                                   step: 8,
                                   branch_type: "upper_trunk",
                                   ppl: 3,
+                                  expertise: 3,
+                                  errors: 2,
+                                  methods: ["manual", "automatic"],
                                   time: 10,
                                   type: "pax_children_db",
                                   children: [
@@ -209,6 +266,9 @@ let original_data = {
                                       step: 11,
                                       branch_type: "uppest_trunk",
                                       ppl: 1,
+                                      expertise: 1,
+                                      errors: 3,
+                                      methods: ["powerBI"],
                                       time: 10,
                                       type: "prog",
                                       children: [{
@@ -216,7 +276,10 @@ let original_data = {
                                         step: 12,
                                         branch_type: "leaf",
                                         ppl: 1,
-                                        time: 1,
+                                        expertise: 1,
+                                        errors: 3,
+                                        methods: ["powerBI"],
+                                        time: 10,
                                         type: "vis",
                                       }]
                                     },
@@ -231,6 +294,9 @@ let original_data = {
                           step: 6,
                           branch_type: "upper_trunk",
                           ppl: 10,
+                          expertise: 3,
+                          errors: 3,
+                          methods: ["manual", "AI-assisted", "combination"],
                           time: 100,
                           type: "pax_local_code",
                           children: [
@@ -772,6 +838,42 @@ export function generateDiagonalProgPath(
   path += ` L${last.x},${yCenter - last.y}`;
 
   return path;
+}
+
+function createUpwardElbowPath(link, yCenter, extraDown = 0) {
+  const offset = Math.min(50, (yCenter - link.y - (yCenter - link.parent.y)) * 0.3) + extraDown;
+  const control = offset * 0.3;
+
+  return `M${link.x},${yCenter - link.y}
+            L${link.x},${yCenter - link.parent.y + offset}
+            C${link.x},${yCenter - link.parent.y + control}
+             ${link.parent.x},${yCenter - link.parent.y + control}
+             ${link.parent.x},${yCenter - link.parent.y}`;
+}
+
+export function getUpwardLinkPath(link, yCenter) {
+  const isResearch = link.data.name === "Research";
+  const isSpecialBranch =
+    (link.data.name === "d3" && link.parent.data.name === "PA-X") ||
+    link.data.name === "Tracker" ||
+    link.data.name === "Infographics";
+
+  if (isResearch) {
+    return createUpwardElbowPath(link, yCenter);
+  }
+
+  if (isSpecialBranch) {
+    const extraDown =
+      link.data.name === "Tracker" || link.data.name === "Infographics"
+        ? 20
+        : 0;
+    return createUpwardElbowPath(link, yCenter, extraDown);
+  }
+
+  return `M${link.x},${yCenter - link.y}
+                   C${link.x},${yCenter - link.parent.y - 20}
+                    ${link.parent.x},${yCenter - link.parent.y - 50}
+                    ${link.parent.x},${yCenter - link.parent.y}`;
 }
 
 export function groupDownwardByContinent(

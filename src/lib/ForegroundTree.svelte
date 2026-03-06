@@ -1,5 +1,5 @@
 <script>
-  import { generateDiagonalProgPath } from "../utils";
+  import { generateDiagonalProgPath, getUpwardLinkPath } from "../utils";
 
   export let nodesUp = [];
   export let linksUp = [];
@@ -12,9 +12,6 @@
   export let handleHoverEvent;
   export let handleClickEvents;
   export let rootUp;
-
-  const orbitRadius = 14;
-  const ringGap = 4.5;
 
   const labelConfig = new Map([
     ["pax_collect", { x: 12 }],
@@ -44,6 +41,16 @@
     ["prog_overview", { text: "Development", y: -20, rotate: -45 }],
     ["pdf", { text: "Infographics", rotate: -45 }],
   ]);
+
+  const sortByX = (a, b) => a.x - b.x;
+
+  function getSortedDescendants(descendants, predicate) {
+    return descendants.filter(predicate).sort(sortByX);
+  }
+
+  function inPaXBranch(node) {
+    return node.parent?.ancestors().some((a) => a.data.name === "PA-X");
+  }
 
   let visibleLinksDown = [];
 
@@ -85,76 +92,71 @@
     }
   }
 
+  $: descendants = rootUp ? rootUp.descendants() : [];
+
   ///////////////////////////// connecting same type nodes
   // code connections
-  $: codeNodes = rootUp
-    .descendants()
-    .filter((d) => d.data.name === "Code" && d.data.type !== "pax_code");
-  $: codeNodes.sort((a, b) => a.x - b.x);
+  $: codeNodes = getSortedDescendants(
+    descendants,
+    (d) => d.data.name === "Code" && d.data.type !== "pax_code",
+  );
   $: codePath = generateDiagonalProgPath(yCenter, codeNodes, [], 40);
 
   // qc connections
-  $: qcNodes = rootUp
-    .descendants()
-    .filter(
-      (d) =>
-        d.data.name === "Quality Control" &&
-        d.data.type !== "pax_quality_control",
-    );
-  $: qcNodes.sort((a, b) => a.x - b.x);
+  $: qcNodes = getSortedDescendants(
+    descendants,
+    (d) =>
+      d.data.name === "Quality Control" &&
+      d.data.type !== "pax_quality_control",
+  );
   $: qcPath = generateDiagonalProgPath(yCenter, qcNodes, [], 40);
 
   // db connections
-  $: paXDBNodes = rootUp.descendants().filter((d) => {
+  $: paXDBNodes = getSortedDescendants(descendants, (d) => {
     const type = d.data.type;
     return type?.slice(-2) === "db" && type !== "pax_db";
   });
-  $: paXDBNodes.sort((a, b) => a.x - b.x);
   $: dbPath = generateDiagonalProgPath(yCenter, paXDBNodes, [], 40);
 
   // paper connections
-  $: paXPaperNodes = rootUp
-    .descendants()
-    .filter((d) => d.data.name === "paper");
-  $: paXPaperNodes.sort((a, b) => a.x - b.x);
+  $: paXPaperNodes = getSortedDescendants(
+    descendants,
+    (d) => d.data.name === "paper",
+  );
   $: paperPath = generateDiagonalProgPath(yCenter, paXPaperNodes, [], 40);
 
   // first layer of programming
-  $: paXProgFirst = rootUp
-    .descendants()
-    .filter((d) => d.data.type === "prog" && d.parent.data.name !== "PA-X");
-  $: paXProgFirst.sort((a, b) => a.x - b.x);
+  $: paXProgFirst = getSortedDescendants(
+    descendants,
+    (d) => d.data.type === "prog" && d.parent?.data.name !== "PA-X",
+  );
   $: progPathFirst = generateDiagonalProgPath(yCenter, paXProgFirst, [], 40);
 
   // second layer of programming
-  $: paXProgSecond = rootUp
-    .descendants()
-    .filter((d) => d.data.type === "prog" || d.data.type === "prog_overview");
-  $: paXProgSecond.sort((a, b) => a.x - b.x);
+  $: paXProgSecond = getSortedDescendants(
+    descendants,
+    (d) => d.data.type === "prog" || d.data.type === "prog_overview",
+  );
   $: progPathSecond = generateDiagonalProgPath(yCenter, paXProgSecond, [], 40);
 
   // first layer of vis connections
-  $: paXVisNodes = rootUp.descendants().filter((d) => {
+  $: paXVisNodes = getSortedDescendants(descendants, (d) => {
     if (d.data.type !== "vis") return false;
     const parent = d.parent;
     const grandparent = d.parent?.parent;
-    // exclude nodes if parent or grandparent name is "PA-X"
+
     if (
       (parent && parent.data.name === "PA-X") ||
       (grandparent && grandparent.data.name === "PA-X")
     ) {
       return false;
     }
+
     return true;
   });
-  $: paXVisNodes.sort((a, b) => a.x - b.x);
-  $: visObstacles = rootUp
-    .descendants()
-    .filter(
-      (d) =>
-        !paXVisNodes.includes(d) &&
-        d.parent?.ancestors().some((a) => a.data.name === "PA-X"),
-    );
+  $: visObstacles = descendants.filter(
+    (d) => !paXVisNodes.includes(d) && inPaXBranch(d),
+  );
   $: visPathFirst = generateDiagonalProgPath(
     yCenter,
     paXVisNodes,
@@ -163,18 +165,13 @@
   );
 
   // second level of vis
-  $: paXVisNodesSecond = rootUp
-    .descendants()
-    .filter((d) => d.data.type === "vis" && d.parent.data.name !== "PA-X")
-    .sort((a, b) => a.x - b.x);
-  $: paXVisNodesSecond.sort((a, b) => a.x - b.x);
-  $: visObstaclesSecond = rootUp
-    .descendants()
-    .filter(
-      (d) =>
-        !paXVisNodesSecond.includes(d) &&
-        d.parent?.ancestors().some((a) => a.data.name == "PA-X"),
-    );
+  $: paXVisNodesSecond = getSortedDescendants(
+    descendants,
+    (d) => d.data.type === "vis" && d.parent?.data.name !== "PA-X",
+  );
+  $: visObstaclesSecond = descendants.filter(
+    (d) => !paXVisNodesSecond.includes(d) && inPaXBranch(d),
+  );
   $: visPathSecond = generateDiagonalProgPath(
     yCenter,
     paXVisNodesSecond,
@@ -182,18 +179,13 @@
     40,
   );
 
-  $: paXVisNodesThird = rootUp
-    .descendants()
-    .filter((d) => d.data.type === "vis")
-    .sort((a, b) => a.x - b.x);
-  $: paXVisNodesThird.sort((a, b) => a.x - b.x);
-  $: visObstaclesThird = rootUp
-    .descendants()
-    .filter(
-      (d) =>
-        !paXVisNodesThird.includes(d) &&
-        d.parent?.ancestors().some((a) => a.data.name == "PA-X"),
-    );
+  $: paXVisNodesThird = getSortedDescendants(
+    descendants,
+    (d) => d.data.type === "vis",
+  );
+  $: visObstaclesThird = descendants.filter(
+    (d) => !paXVisNodesThird.includes(d) && inPaXBranch(d),
+  );
   $: visPathThird = generateDiagonalProgPath(
     yCenter,
     paXVisNodesThird,
@@ -207,10 +199,6 @@
       MAX_R = 28,
       MAX_PPL = 50;
     return MIN_R + (Math.sqrt(ppl) / Math.sqrt(MAX_PPL)) * (MAX_R - MIN_R);
-  }
-
-  function dotRadius(ppl) {
-    return Math.max(1.5, strokeWidth(ppl) / 2 - 1);
   }
 
   function getPeopleDots(ppl) {
@@ -263,7 +251,7 @@
 {/each}
 
 <!-- downward gradual nodes -->
-{#each visibleNodesDown as d, i}
+{#each visibleNodesDown as d}
   <g transform={`translate(${d.x}, ${yCenter + d.y})`}>
     {#if firstNodeByLevelDown.get(d.revealLevel) === d}
       <text x={-10} y={3} font-size="12" fill="white" text-anchor="end">
@@ -375,47 +363,7 @@
 <!-- upward links -->
 {#each visibleLinksUp as d}
   <path
-    d={d.data.name === "Research"
-      ? (() => {
-          const offset = Math.min(
-            50,
-            (yCenter - d.y - (yCenter - d.parent.y)) * 0.3,
-          );
-          const control = offset * 0.3;
-
-          return `M${d.x},${yCenter - d.y}
-                            L${d.x},${yCenter - d.parent.y + offset}
-                            C${d.x},${yCenter - d.parent.y + control}
-                             ${d.parent.x},${yCenter - d.parent.y + control}
-                             ${d.parent.x},${yCenter - d.parent.y}`;
-        })()
-      : (d.data.name === "d3" && d.parent.data.name === "PA-X") ||
-          d.data.name === "Tracker" ||
-          d.data.name === "Infographics"
-        ? (() => {
-            const baseOffset = Math.min(
-              50,
-              (yCenter - d.y - (yCenter - d.parent.y)) * 0.3,
-            );
-
-            const extraDown =
-              d.data.name === "Tracker" || d.data.name === "Infographics"
-                ? 20
-                : 0;
-
-            const offset = baseOffset + extraDown;
-            const control = offset * 0.3;
-
-            return `M${d.x},${yCenter - d.y}
-            L${d.x},${yCenter - d.parent.y + offset}
-            C${d.x},${yCenter - d.parent.y + control}
-             ${d.parent.x},${yCenter - d.parent.y + control}
-             ${d.parent.x},${yCenter - d.parent.y}`;
-          })()
-        : `M${d.x},${yCenter - d.y}
-                   C${d.x},${yCenter - d.parent.y - 20}
-                    ${d.parent.x},${yCenter - d.parent.y - 50}
-                    ${d.parent.x},${yCenter - d.parent.y}`}
+    d={getUpwardLinkPath(d, yCenter)}
     fill="none"
     stroke-linecap="round"
     stroke={highlightedLinks.has(`${d.parent.data.id}→${d.data.id}`)
@@ -506,34 +454,6 @@
         transform={lc.rotate ? `rotate(${lc.rotate}, -5, 5)` : null}
       >
         {lc.text}
-      </text>
-    {/if}
-
-    {#if d.data.name && labelMap.has(d.data.name)}
-      {#if !labelMap.get(d.data.name).maxLevel || currentLevelUp < labelMap.get(d.data.name).maxLevel}
-        <text
-          x={20}
-          y={labelMap.get(d.data.name).y ?? 0}
-          font-size="12"
-          fill="white"
-          transform={labelMap.get(d.data.name).rotate
-            ? `rotate(${labelMap.get(d.data.name).rotate}, 20, ${labelMap.get(d.data.name).y ?? 5})`
-            : null}
-        >
-          {labelMap.get(d.data.name).text}
-        </text>
-      {/if}
-    {:else if d.data.type && labelByCategory.has(d.data.type)}
-      <text
-        x={20}
-        y={0}
-        font-size="12"
-        fill="white"
-        transform={labelByCategory.get(d.data.type).rotate
-          ? `rotate(${labelByCategory.get(d.data.type).rotate}, -5, 5)`
-          : null}
-      >
-        {labelByCategory.get(d.data.type).text}
       </text>
     {/if}
 

@@ -1,17 +1,9 @@
 <script>
-  import * as d3 from "d3";
-  import { tick } from "svelte";
-  import App from "../App.svelte";
   export let fullChain = [];
   export let innerHeight = window.innerHeight;
   export let segment_height;
   export let details_width = 300;
 
-  // todo
-  // circular stuff for all the sections methords, errors...
-  // differentiate between qualitative and quantitative
-  // maybe remove ppl methods from artifacts
-  // source output add img on hover get bigger?
 
   function hasGrayBorder(data) {
     return (
@@ -24,9 +16,9 @@
   const TIME_MIN = 0;
   const TIME_MAX = 120;
   const PEOPLE_CIRCLE_SHIFT_X = 3;
-  const DETAIL_TIME_TO_ERRORS_GAP_SCALE = -2;
-  const DETAIL_ERRORS_TO_METHODS_GAP_SCALE = -2;
-  const LEGEND_SAMPLE_DATA = { people: 10, time: 30, errors: 5, methods: 4 };
+  const DETAIL_TIME_TO_ERRORS_GAP_SCALE = -1;
+  const DETAIL_ERRORS_TO_METHODS_GAP_SCALE = -1;
+  const LEGEND_SAMPLE_DATA = { people: 10, time: 30, errors: 8, methods: 10 };
 
   function getDetailSegmentWeight(data) {
     const name = data?.name;
@@ -37,6 +29,24 @@
 
   function getDetailSegmentHeight(data) {
     return segment_height * getDetailSegmentWeight(data);
+  }
+
+  function getDetailSegmentRadius(height) {
+    const value = Number(height);
+    if (!Number.isFinite(value) || value <= 0) return 0;
+    return value / 2;
+  }
+
+  function getProcessCircleRadius(height, inset = 1.5) {
+    const baseRadius = getDetailSegmentRadius(height);
+    const safeInset = Number.isFinite(Number(inset)) ? Number(inset) : 0;
+    return Math.max(0, baseRadius - safeInset);
+  }
+
+  function getProcessLabelFontSize(height) {
+    const value = Number(height);
+    if (!Number.isFinite(value) || value <= 0) return 8;
+    return Math.max(6, Math.min(12, value * 0.22));
   }
 
   function getPeopleIndicatorCount(data) {
@@ -81,9 +91,10 @@
     };
   }
 
-  function getPeopleCircleMarkers(data) {
+  function getPeopleCircleMarkers(data, originX = 0) {
     const count = getPeopleIndicatorCount(data);
     const segmentHeight = getDetailSegmentHeight(data);
+    const safeOriginX = Number.isFinite(Number(originX)) ? Number(originX) : 0;
 
     if (count <= 0 || !Number.isFinite(segmentHeight) || segmentHeight <= 0) {
       return [];
@@ -118,17 +129,17 @@
       const offsetFromEdge = edgeClearance + column * columnStep;
 
       return {
-        cx: edgeX + offsetFromEdge + PEOPLE_CIRCLE_SHIFT_X,
+        cx: safeOriginX + edgeX + offsetFromEdge + PEOPLE_CIRCLE_SHIFT_X,
         cy,
         r: circleRadius,
       };
     });
   }
 
-  function getErrorMarkers(data, timePathLayout, gapScale = 1) {
+  function getErrorMarkers(data, timePathLayout, gapScale = 1, originX = 0) {
     const count = getErrorsIndicatorCount(data);
     const segmentHeight = getDetailSegmentHeight(data);
-    const segmentWidth = Math.max(Number(details_width) || 0, 0);
+    const safeOriginX = Number.isFinite(Number(originX)) ? Number(originX) : 0;
 
     if (count <= 0 || !Number.isFinite(segmentHeight) || segmentHeight <= 0) {
       return [];
@@ -147,7 +158,7 @@
     // Start after time path with a gap
     const timeEndX = timePathLayout?.isVisible
       ? timePathLayout.endTipX
-      : segmentHeight / 2;
+      : safeOriginX + segmentHeight / 2;
     const startGap = Math.max(8, circleRadius * 1.2) * gapScale;
 
     const columnStep = circleRadius * 2 + horizontalGap;
@@ -175,10 +186,10 @@
     });
   }
 
-  function getMethodRects(data, errorMarkers, gapScale = 1) {
+  function getMethodRects(data, errorMarkers, gapScale = 1, originX = 0) {
     const count = getMethodsIndicatorCount(data);
     const segmentHeight = getDetailSegmentHeight(data);
-    const segmentWidth = Math.max(Number(details_width) || 0, 0);
+    const safeOriginX = Number.isFinite(Number(originX)) ? Number(originX) : 0;
 
     if (count <= 0 || !Number.isFinite(segmentHeight) || segmentHeight <= 0) {
       return [];
@@ -198,7 +209,7 @@
     const errorsEndX =
       errorMarkers.length > 0
         ? Math.max(...errorMarkers.map((m) => m.x + m.size / 2))
-        : segmentHeight / 2;
+        : safeOriginX + segmentHeight / 2;
     const startGap = Math.max(8, circleRadius * 1.2) * gapScale;
 
     const columnStep = circleRadius * 2 + horizontalGap;
@@ -221,7 +232,7 @@
       return {
         x: errorsEndX + startGap + edgeX + column * columnStep,
         y: cy,
-        size: circleRadius * 1.4,
+        size: circleRadius * 2,
       };
     });
   }
@@ -232,9 +243,10 @@
     return Math.max(TIME_MIN, Math.min(TIME_MAX, value));
   }
 
-  function getTimePathLayout(data) {
+  function getTimePathLayout(data, originX = 0) {
     const segmentHeight = getDetailSegmentHeight(data);
     const segmentWidth = Math.max(Number(details_width) || 0, 0);
+    const safeOriginX = Number.isFinite(Number(originX)) ? Number(originX) : 0;
 
     if (
       !Number.isFinite(segmentHeight) ||
@@ -248,11 +260,11 @@
     const halfCircleRadius = segmentHeight / 2;
     const { circleRadius, horizontalGap } =
       getPeopleVisualMetrics(segmentHeight);
-    const peopleMarkers = getPeopleCircleMarkers(data);
+    const peopleMarkers = getPeopleCircleMarkers(data, safeOriginX);
     const peopleRightEdge =
       peopleMarkers.length > 0
         ? Math.max(...peopleMarkers.map((marker) => marker.cx + marker.r))
-        : halfCircleRadius;
+        : safeOriginX + halfCircleRadius;
 
     const startGap = Math.max(
       0.8,
@@ -261,7 +273,10 @@
     const startX = peopleRightEdge + startGap;
     const rightPadding = Math.max(4, circleRadius);
     const minTipX = startX + halfCircleRadius;
-    const maxTipX = Math.min(segmentWidth * 0.5, segmentWidth - rightPadding);
+    const maxTipX = Math.min(
+      segmentWidth * 0.5 + safeOriginX,
+      segmentWidth - rightPadding,
+    );
 
     if (maxTipX <= minTipX) {
       return { isVisible: false, pathD: "", startX: 0, endTipX: 0 };
@@ -341,7 +356,7 @@
         ? Math.max(...methodMarkers.map((marker) => marker.x + marker.size / 2))
         : methodsLeft + spacing;
 
-    const minGapHalfToPeople = Math.max(26, segmentWidth * 0.09);
+    const minGapHalfToPeople = Math.max(34, segmentWidth * 0.11);
     const peopleShiftX = Math.max(
       0,
       halfCircleRight + minGapHalfToPeople - peopleLeft,
@@ -349,7 +364,7 @@
     const shiftedPeopleLeft = peopleLeft + peopleShiftX;
     const shiftedPeopleRight = peopleRight + peopleShiftX;
 
-    const minGapPeopleToTime = Math.max(22, segmentWidth * 0.07);
+    const minGapPeopleToTime = Math.max(30, segmentWidth * 0.09);
     const timeShiftX = Math.max(
       0,
       shiftedPeopleRight + minGapPeopleToTime - timeStart,
@@ -357,7 +372,7 @@
     const shiftedTimeStart = timeStart + timeShiftX;
     const shiftedTimeEnd = timeEnd + timeShiftX;
 
-    const minGapTimeToErrors = Math.max(20, segmentWidth * 0.06);
+    const minGapTimeToErrors = Math.max(28, segmentWidth * 0.08);
     const errorsShiftX = Math.max(
       0,
       shiftedTimeEnd + minGapTimeToErrors - errorsLeft,
@@ -365,7 +380,7 @@
     const shiftedErrorsLeft = errorsLeft + errorsShiftX;
     const shiftedErrorsRight = errorsRight + errorsShiftX;
 
-    const minGapErrorsToMethods = Math.max(34, segmentWidth * 0.1);
+    const minGapErrorsToMethods = Math.max(42, segmentWidth * 0.12);
     const methodsShiftX = Math.max(
       0,
       shiftedErrorsRight + minGapErrorsToMethods - methodsLeft,
@@ -440,39 +455,28 @@
           legendTimePathLayout,
         )
       : null;
-
-  $: console.log("fullChain in Details:", fullChain);
 </script>
 
 <div id="details" style="height: {innerHeight}px; width: {details_width}px;">
   {#if fullChain.length > 0}
     <div
       class="detail-segment legend-segment"
-      style="height: {segment_height}px; width: {details_width}px;"
+      style="
+        height: {segment_height}px;
+        width: {details_width}px;
+        --segment-radius: {getDetailSegmentRadius(segment_height)}px;
+      "
     >
       <svg class="segment-svg" aria-hidden="true" focusable="false">
         {#if legendTextLayout}
-          <!-- <text
-            class="legend-title"
-            x={legendTextLayout.titleX}
-            y={legendTextLayout.titleY}
-          >
-            LEGEND
-          </text> -->
-
           <circle
-            class="legend-half-circle"
-            cx="0"
-            cy={segment_height / 2}
-            r={segment_height / 2}
+            class="legend-process-circle"
+            cx={segment_height / 2 - 1}
+            cy={segment_height / 2 - 1}
+            r={getProcessCircleRadius(segment_height, 2)}
           />
 
-          <text
-            class="legend-label"
-            x={legendTextLayout.processX}
-            y={legendTextLayout.processY}
-            transform={`rotate(45 ${legendTextLayout.processX} ${legendTextLayout.processY})`}
-          >
+          <text class="legend-label" x={legendTextLayout.processX} y={5}>
             Process
           </text>
 
@@ -485,12 +489,7 @@
             />
           {/each}
 
-          <text
-            class="legend-label"
-            x={legendTextLayout.peopleX}
-            y={legendTextLayout.peopleY}
-            transform={`rotate(45 ${legendTextLayout.peopleX} ${legendTextLayout.peopleY})`}
-          >
+          <text class="legend-label" x={legendTextLayout.peopleX} y={5}>
             People
           </text>
 
@@ -502,12 +501,7 @@
             ></path>
           {/if}
 
-          <text
-            class="legend-label"
-            x={legendTextLayout.timeX}
-            y={legendTextLayout.timeY}
-            transform={`rotate(45 ${legendTextLayout.timeX} ${legendTextLayout.timeY})`}
-          >
+          <text class="legend-label" x={legendTextLayout.timeX} y={5}>
             Time
           </text>
 
@@ -518,16 +512,11 @@
               y={marker.y}
               font-size={marker.size}
             >
-              !
+              &#xf071;
             </text>
           {/each}
 
-          <text
-            class="legend-label"
-            x={legendTextLayout.errorsX}
-            y={legendTextLayout.errorsY}
-            transform={`rotate(45 ${legendTextLayout.errorsX} ${legendTextLayout.errorsY})`}
-          >
+          <text class="legend-label" x={legendTextLayout.errorsX} y={5}>
             Errors
           </text>
 
@@ -538,16 +527,10 @@
               y={marker.y - marker.size / 2}
               width={marker.size}
               height={marker.size}
-              transform={`rotate(45 ${marker.x + legendTextLayout.methodsShiftX} ${marker.y})`}
             />
           {/each}
 
-          <text
-            class="legend-label"
-            x={legendTextLayout.methodsX}
-            y={legendTextLayout.methodsY}
-            transform={`rotate(45 ${legendTextLayout.methodsX} ${legendTextLayout.methodsY})`}
-          >
+          <text class="legend-label" x={legendTextLayout.methodsX} y={5}>
             Methods
           </text>
         {/if}
@@ -557,30 +540,60 @@
 
   <!-- individual segments -->
   {#each fullChain as d}
+    {@const segmentData = d.data}
+    {@const segmentHeight = getDetailSegmentHeight(segmentData)}
+    {@const segmentVisualOffsetX = segmentHeight / 2}
+    {@const segmentProcessCircleCenterX = segmentVisualOffsetX - 1}
+    {@const segmentProcessCircleCenterY = segmentHeight / 2 - 1}
+    {@const segmentProcessLabelX = details_width - 5}
+    {@const segmentProcessLabelY = segmentHeight / 2}
+    {@const segmentProcessCircleRadius = getProcessCircleRadius(segmentHeight)}
+    {@const peopleMarkers = getPeopleCircleMarkers(
+      segmentData,
+      segmentVisualOffsetX,
+    )}
+    {@const timePath = getTimePathLayout(segmentData, segmentVisualOffsetX)}
+    {@const errorMarkers = getErrorMarkers(
+      segmentData,
+      timePath,
+      DETAIL_TIME_TO_ERRORS_GAP_SCALE,
+      segmentVisualOffsetX,
+    )}
+    {@const methodMarkers = getMethodRects(
+      segmentData,
+      errorMarkers,
+      DETAIL_ERRORS_TO_METHODS_GAP_SCALE,
+      segmentVisualOffsetX,
+    )}
     <a href={d.data.link} target="_blank">
       <div
-        class="detail-segment {hasGrayBorder(d.data)
+        class="detail-segment {hasGrayBorder(segmentData)
           ? 'gray-border-segment'
           : ''}"
         style="
-			height: {getDetailSegmentHeight(d.data)}px;
+			height: {segmentHeight}px;
 			width: {details_width}px;
 			display: flex;
-      border-color: {d.data.name === 'PA-X' ||
-        d.data.branch_type === 'leaf' ||
-        d.data.type?.slice(-2) === 'db'
-          ? 'gray'
-          : '#00C23'};
+      --segment-radius: {getDetailSegmentRadius(segmentHeight)}px;
+      border-color: {hasGrayBorder(segmentData) ? 'gray' : '#404040'};
 		  "
       >
         <svg class="segment-svg" aria-hidden="true" focusable="false">
           <circle
-            class="segment-half-circle"
-            cx="0"
-            cy={getDetailSegmentHeight(d.data) / 2}
-            r={getDetailSegmentHeight(d.data) / 2}
+            class="segment-process-circle"
+            cx={segmentProcessCircleCenterX}
+            cy={segmentProcessCircleCenterY}
+            r={segmentProcessCircleRadius}
           />
-          {#each getPeopleCircleMarkers(d.data) as marker}
+          <text
+            class="segment-process-label"
+            x={segmentProcessLabelX - 5}
+            y={segmentProcessLabelY}
+            font-size={10}
+          >
+            {segmentData?.name}
+          </text>
+          {#each peopleMarkers as marker}
             <circle
               class="segment-people-circle"
               cx={marker.cx}
@@ -588,34 +601,27 @@
               r={marker.r}
             />
           {/each}
-          {#each [getTimePathLayout(d.data)] as timePath}
-            {#if timePath.isVisible}
-              <path class="segment-time-shape" d={timePath.pathD}></path>
-            {/if}
-            {#each getErrorMarkers(d.data, timePath, DETAIL_TIME_TO_ERRORS_GAP_SCALE) as errorMarker}
-              <text
-                class="segment-error-mark"
-                x={errorMarker.x}
-                y={errorMarker.y}
-                font-size={11}
-              >
-                !
-              </text>
-            {/each}
-            {#each getMethodRects(
-              d.data,
-              getErrorMarkers(d.data, timePath, DETAIL_TIME_TO_ERRORS_GAP_SCALE),
-              DETAIL_ERRORS_TO_METHODS_GAP_SCALE,
-            ) as methodMarker}
-              <rect
-                class="segment-method-rect"
-                x={methodMarker.x - methodMarker.size / 2}
-                y={methodMarker.y - methodMarker.size / 2}
-                width={methodMarker.size}
-                height={methodMarker.size}
-                transform={`rotate(45 ${methodMarker.x} ${methodMarker.y})`}
-              />
-            {/each}
+          {#if timePath.isVisible}
+            <path class="segment-time-shape" d={timePath.pathD}></path>
+          {/if}
+          {#each errorMarkers as errorMarker}
+            <text
+              class="segment-error-mark"
+              x={errorMarker.x}
+              y={errorMarker.y}
+              font-size={11}
+            >
+              &#xf071;
+            </text>
+          {/each}
+          {#each methodMarkers as methodMarker}
+            <rect
+              class="segment-method-rect"
+              x={methodMarker.x - methodMarker.size / 2}
+              y={methodMarker.y - methodMarker.size / 2}
+              width={methodMarker.size}
+              height={methodMarker.size}
+            />
           {/each}
         </svg>
       </div></a
@@ -635,8 +641,8 @@
     display: flex;
     box-sizing: border-box;
     background-color: #002731;
-    border-radius: 10px;
-    border: solid 2px rgba(106, 106, 106, 0.237);
+    border-radius: var(--segment-radius, 10px);
+    border: solid 1px rgba(106, 106, 106);
     transition: border-color 0.2s ease;
     overflow: hidden;
   }
@@ -648,10 +654,17 @@
     pointer-events: none;
   }
 
-  .segment-half-circle {
+  .segment-process-circle {
     fill: #001c23;
     stroke: #00ccff;
-    stroke-width: 2;
+    stroke-width: 1;
+  }
+
+  .segment-process-label {
+    fill: rgba(255, 255, 255, 0.95);
+    font-weight: 600;
+    text-anchor: end;
+    dominant-baseline: middle;
   }
 
   .segment-time-shape {
@@ -664,7 +677,9 @@
 
   .segment-error-mark {
     fill: rgba(255, 255, 255, 0.95);
-    font-weight: bold;
+    font-family: FontAwesome;
+    font-weight: normal;
+    font-style: normal;
     text-anchor: middle;
     dominant-baseline: middle;
   }
@@ -673,14 +688,7 @@
     fill: rgba(255, 255, 255, 0.9);
   }
 
-  .legend-title {
-    fill: #9a9a9a;
-    font-size: 10px;
-    text-anchor: middle;
-    dominant-baseline: hanging;
-  }
-
-  .legend-half-circle {
+  .legend-process-circle {
     fill: none;
     stroke: #7d7d7d;
     stroke-width: 2;
@@ -704,8 +712,10 @@
 
   .legend-error-mark {
     fill: #8a8a8a;
-    font-size: 12px;
-    font-weight: bold;
+    font-size: 10px;
+    font-family: FontAwesome;
+    font-weight: normal;
+    font-style: normal;
     text-anchor: middle;
     dominant-baseline: middle;
   }

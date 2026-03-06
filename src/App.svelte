@@ -1,6 +1,5 @@
 <script>
   import * as d3 from "d3";
-  import { onMount, tick } from "svelte";
   import BackgroundTree from "./lib/BackgroundTree.svelte";
   import ForegroundTree from "./lib/ForegroundTree.svelte";
   import Legend from "./lib/Legend.svelte";
@@ -13,34 +12,39 @@
     setUniformY,
   } from "./utils";
 
-  // on the tree make sure the number of projects stemming
-  // from the database is important to show
-  // so the paax got 4 projects (including tracker))
-  // then gender
-  // then youth
-  // or that the thickness refers to the number of projects stemming from the database
-  // so paax path thickest, then gender,...
-  // how many overall at each level? side bar number of deaths for conflict,
-  // number of people negotiating , number of people signing,
-  //                             iii collecting
-  //                         iiiiiii agmts
-  //                           iiiii negotioations
-  // iiiiiiiiiiiiiiiiiiiiiiiiiiiiiii deaths
+  const margin = { top: 20, right: 100, bottom: 20, left: 100 };
+  const STEP_BY_LEVEL = new Map([
+    ["-1:0", 0],
+    ["-1:1", 1],
+    ["0:any", 2],
+    ["1:any", 3],
+    ["2:any", 4],
+    ["3:any", 5],
+    ["4:any", 6],
+    ["5:any", 7],
+    ["6:any", 8],
+    ["7:any", 9],
+    ["8:any", 10],
+    ["9:any", 11],
+    ["10:any", 12],
+    ["11:any", 13],
+    ["12:any", 14],
+    ["13:any", 15],
+    ["14:any", 16],
+    ["15:any", 17],
+    ["16:any", 18],
+  ]);
 
-  let width,
-    height,
-    details_width = 1,
-    details_data = [],
-    clicked = null,
-    removedAgreements,
-    margin = { top: 20, right: 100, bottom: 20, left: 100 },
-    nodesUp = [],
-    linksUp = [],
-    nodesDown = [],
-    linksDown = [],
-    ucdpNodes = [],
-    tracker,
-    peacefem;
+  let width;
+  let height;
+  let details_width = 1;
+  let clicked = null;
+  let removedAgreements;
+  let nodesUp = [];
+  let linksUp = [];
+  let nodesDown = [];
+  let linksDown = [];
+  let ucdpNodes = [];
 
   $: innerWidth = width - margin.right - margin.left;
   $: innerHeight = height - margin.top - margin.bottom;
@@ -127,7 +131,7 @@
     const collectNode = rootUp
       .descendants()
       .find((d) => d.data.name === "Collect");
-    rootDown.x = collectNode.x;
+    rootDown.x = collectNode?.x ?? innerWidth / 2;
     rootUp.y = 0;
     ucdpDown.x = innerWidth / 1.2;
     ucdpDown.y -= 20;
@@ -170,15 +174,17 @@
     }
 
     // position peacefem and youth to the top level
-    let infographics = rootUp
+    const infographics = rootUp
       .descendants()
       .find((d) => d.data.name === "Infographics");
-    let gender = rootUp
+    const gender = rootUp
       .descendants()
       .find((d) => d.data.name === "Scrollytelling");
-    let youth = rootUp.descendants().find((d) => d.data.name === "PBi Youth");
-    infographics.y = gender.y;
-    infographics.x += 20;
+
+    if (infographics && gender) {
+      infographics.y = gender.y;
+      infographics.x += 20;
+    }
 
     // positioning of the downward tree nodes
     const spacingDown = downHeight / (rootDown.height + 0.8);
@@ -299,12 +305,12 @@
     clicked = true;
     fullChain = [];
     details_width = innerWidth;
-    details_data = e.node;
-    let current = details_data;
-    let downCurrent = nodesDown[16];
-    let downCurrentChain = []; // Temporary array to store downCurrent hierarchy
+    let current = e.node;
+    let downCurrent =
+      nodesDown.find((node) => node.data.name === "agreement") ?? nodesDown[16];
+    const downCurrentChain = [];
 
-    // Walk up to collect all parents from details_data
+    // Walk up to collect all parents from the clicked node.
     while (current) {
       fullChain.push(current); // push keeps order as leaf → root
       current = current.parent;
@@ -329,19 +335,40 @@
   }
 
   /////////////////////////////// gradual reveal logic
-  // revel doesn't work fir the agreement -> collection FIX !!!
+  const DOWN_REVEAL_LEVEL = {
+    agreement: 0,
+    negotiation: 1,
+    conflict: 2,
+  };
+
   function downRevealLevel(d) {
-    switch (d.data.name) {
-      case "agreement":
-        return 0;
-      case "negotiation":
-        return 1;
-      case "conflict":
-        return 2;
-      default:
-        return 0;
+    return DOWN_REVEAL_LEVEL[d.data.name] ?? 0;
+  }
+
+  function getStepIndex(levelUp, levelDown) {
+    return (
+      STEP_BY_LEVEL.get(`${levelUp}:${levelDown}`) ??
+      STEP_BY_LEVEL.get(`${levelUp}:any`)
+    );
+  }
+
+  function runWorkflowLevelEffects(levelUp) {
+    if (levelUp === 7) {
+      d3.select(".trackerCircle").remove();
+    } else if (levelUp === 9) {
+      d3.selectAll(".sub_db_research, .research_link").style("stroke", "#bfbfbf");
+      d3.select(".progPathFirst").remove();
+    } else if (levelUp === 10) {
+      d3.selectAll(".visPathFirst, .pbiCircle").remove();
+    } else if (levelUp === 14) {
+      d3.selectAll(".vis_link").style("stroke", "#bfbfbf");
+    } else if (levelUp === 15) {
+      d3.selectAll(".sub_vis_research").style("stroke", "#bfbfbf");
+    } else if (levelUp === 16) {
+      d3.selectAll(".ucdp_link").style("stroke", "#bfbfbf");
     }
   }
+
   let currentLevelDown = -1;
   let currentLevelUp = -1;
   let segment_height;
@@ -365,58 +392,20 @@
     }
   }
 
-  // remove first level connections
+  // update step text + transition highlights
   $: {
-    if (currentLevelUp === -1 && currentLevelDown === 0) {
-      d3.select("#step_description")
-        .style("visibility", "visible")
-        .html(steps.workflow[0].description);
-    } else if (currentLevelUp === -1 && currentLevelDown === 1) {
-      d3.select("#step_description").html(steps.workflow[1].description);
-    } else if (currentLevelUp === 0) {
-      d3.select("#step_description").html(steps.workflow[2].description);
-    } else if (currentLevelUp === 1) {
-      d3.select("#step_description").html(steps.workflow[3].description);
-    } else if (currentLevelUp === 2) {
-      d3.select("#step_description").html(steps.workflow[4].description);
-    } else if (currentLevelUp === 3) {
-      d3.select("#step_description").html(steps.workflow[5].description);
-    } else if (currentLevelUp === 4) {
-      d3.select("#step_description").html(steps.workflow[6].description);
-    } else if (currentLevelUp === 5) {
-      d3.select("#step_description").html(steps.workflow[7].description);
-    } else if (currentLevelUp === 6) {
-      d3.select("#step_description").html(steps.workflow[8].description);
-    } else if (currentLevelUp === 7) {
-      d3.select("#step_description").html(steps.workflow[9].description);
-      d3.select(".trackerCircle").remove();
-    } else if (currentLevelUp === 8) {
-      d3.select("#step_description").html(steps.workflow[10].description);
-    } else if (currentLevelUp === 9) {
-      d3.selectAll(".sub_db_research, .research_link").style(
-        "stroke",
-        "#bfbfbf",
-      );
-      d3.select("#step_description").html(steps.workflow[11].description);
-      d3.select(".progPathFirst").remove();
-    } else if (currentLevelUp === 10) {
-      d3.select("#step_description").html(steps.workflow[12].description);
-      d3.selectAll(".visPathFirst, .pbiCircle").remove();
-    } else if (currentLevelUp === 11) {
-      d3.select("#step_description").html(steps.workflow[13].description);
-    } else if (currentLevelUp === 12) {
-      d3.select("#step_description").html(steps.workflow[14].description);
-    } else if (currentLevelUp === 13) {
-      d3.select("#step_description").html(steps.workflow[15].description);
-    } else if (currentLevelUp === 14) {
-      d3.select("#step_description").html(steps.workflow[16].description);
-      d3.selectAll(".vis_link").style("stroke", "#bfbfbf");
-    } else if (currentLevelUp === 15) {
-      d3.select("#step_description").html(steps.workflow[17].description);
-      d3.selectAll(".sub_vis_research").style("stroke", "#bfbfbf");
-    } else if (currentLevelUp === 16) {
-      d3.selectAll(".ucdp_link").style("stroke", "#bfbfbf");
-      d3.select("#step_description").html(steps.workflow[18].description);
+    const stepIndex = getStepIndex(currentLevelUp, currentLevelDown);
+    if (stepIndex !== undefined) {
+      const description = steps.workflow[stepIndex]?.description;
+      if (description) {
+        const stepDescription = d3.select("#step_description");
+        if (currentLevelUp === -1 && currentLevelDown === 0) {
+          stepDescription.style("visibility", "visible");
+        }
+
+        stepDescription.html(description);
+        runWorkflowLevelEffects(currentLevelUp);
+      }
     }
   }
 
@@ -509,20 +498,4 @@
     left: 55px;
   }
 
-  .icon {
-    width: 12px;
-    height: 12px;
-    background-size: cover;
-    border-radius: 0px;
-    transition: transform 0.2s ease;
-  }
-
-  @keyframes draw {
-    from {
-      stroke-dashoffset: 100;
-    }
-    to {
-      stroke-dashoffset: 0;
-    }
-  }
 </style>
