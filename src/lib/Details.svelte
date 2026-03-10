@@ -6,9 +6,14 @@
 
   const TIME_MIN = 0;
   const TIME_MAX = 120;
+  const DETAIL_SHARED_GAP_PX = 20;
   const PEOPLE_CIRCLE_SHIFT_X = 3;
   const DETAIL_TIME_TO_ERRORS_GAP_SCALE = -1;
-  const DETAIL_ERRORS_TO_METHODS_GAP_SCALE = -1;
+  const METHOD_COG_VERTICAL_GAP_RATIO = 0.12;
+  const METHOD_COG_HORIZONTAL_GAP_RATIO = 0.2;
+  const METHOD_COG_MIN_GAP = 1;
+  const METHOD_TIME_EXTRA_NUDGE_PX = 6;
+  const MAX_METHOD_COGS_PER_CURVE = 4;
   const SEGMENT_EXPAND_DELTA = 100;
   const BOTTOM_EXPAND_COUNT = 3;
   let expandedSegmentIndex = null;
@@ -62,12 +67,6 @@
     return Math.max(0, baseRadius - safeInset);
   }
 
-  function getProcessLabelFontSize(height) {
-    const value = Number(height);
-    if (!Number.isFinite(value) || value <= 0) return 8;
-    return Math.max(6, Math.min(12, value * 0.22));
-  }
-
   function getPeopleIndicatorCount(data) {
     const value = Number(data?.people ?? data?.ppl);
     if (!Number.isFinite(value) || value <= 0) return 0;
@@ -105,9 +104,62 @@
       circleRadius,
       verticalGap,
       horizontalGap,
-      rowStep,
       rowsPerColumn,
     };
+  }
+
+  function getPeopleToTimeGap() {
+    return DETAIL_SHARED_GAP_PX;
+  }
+
+  function getCurvedXOffset(halfCircleRadius, y) {
+    const distanceFromMid = y - halfCircleRadius;
+    return Math.sqrt(
+      Math.max(
+        halfCircleRadius * halfCircleRadius - distanceFromMid * distanceFromMid,
+        0,
+      ),
+    );
+  }
+
+  function getCurvedStackLayout(
+    segmentHeight,
+    count,
+    markerSize,
+    verticalGap,
+    rowsPerColumn,
+    maxRows = Number.POSITIVE_INFINITY,
+  ) {
+    const rows = Math.min(rowsPerColumn, count, maxRows);
+    const rowStep = markerSize + verticalGap;
+    const stackHeight = rows * markerSize + (rows - 1) * verticalGap;
+    const firstCenterY = (segmentHeight - stackHeight) / 2 + markerSize / 2;
+
+    return {
+      rows,
+      rowStep,
+      firstCenterY,
+    };
+  }
+
+  function getMaxMethodCogSize(segmentHeight, rows) {
+    const safeRows = Math.max(1, Number(rows) || 1);
+    const safeHeight = Number(segmentHeight);
+
+    if (!Number.isFinite(safeHeight) || safeHeight <= 0) {
+      return 0;
+    }
+
+    const verticalInset = Math.max(1, safeHeight * 0.03);
+    const usableHeight = Math.max(0, safeHeight - verticalInset * 2);
+    const denominator =
+      safeRows + (safeRows - 1) * METHOD_COG_VERTICAL_GAP_RATIO;
+
+    if (denominator <= 0) {
+      return 0;
+    }
+
+    return usableHeight / denominator;
   }
 
   function getPeopleCircleMarkers(data, originX = 0) {
@@ -120,30 +172,24 @@
     }
 
     const halfCircleRadius = segmentHeight / 2;
-    const { circleRadius, verticalGap, horizontalGap, rowStep, rowsPerColumn } =
+    const { circleRadius, verticalGap, horizontalGap, rowsPerColumn } =
       getPeopleVisualMetrics(segmentHeight);
-    const referenceRows = Math.min(rowsPerColumn, count);
-    const referenceStackHeight =
-      referenceRows * (circleRadius * 2) + (referenceRows - 1) * verticalGap;
-    const firstCenterY =
-      (segmentHeight - referenceStackHeight) / 2 + circleRadius;
+    const { rows, rowStep, firstCenterY } = getCurvedStackLayout(
+      segmentHeight,
+      count,
+      circleRadius * 2,
+      verticalGap,
+      rowsPerColumn,
+    );
 
     const edgeClearance = circleRadius + Math.max(2.5, circleRadius * 0.9);
     const columnStep = circleRadius * 2 + horizontalGap;
 
     return Array.from({ length: count }, (_, index) => {
-      const column = Math.floor(index / rowsPerColumn);
-      const row = index % rowsPerColumn;
+      const column = Math.floor(index / rows);
+      const row = index % rows;
       const cy = firstCenterY + row * rowStep;
-
-      const distanceFromMid = cy - halfCircleRadius;
-      const edgeX = Math.sqrt(
-        Math.max(
-          halfCircleRadius * halfCircleRadius -
-            distanceFromMid * distanceFromMid,
-          0,
-        ),
-      );
+      const edgeX = getCurvedXOffset(halfCircleRadius, cy);
 
       const offsetFromEdge = edgeClearance + column * columnStep;
 
@@ -165,14 +211,15 @@
     }
 
     const halfCircleRadius = segmentHeight / 2;
-    const { circleRadius, verticalGap, horizontalGap, rowStep, rowsPerColumn } =
+    const { circleRadius, verticalGap, horizontalGap, rowsPerColumn } =
       getPeopleVisualMetrics(segmentHeight);
-
-    const referenceRows = Math.min(rowsPerColumn, count);
-    const referenceStackHeight =
-      referenceRows * (circleRadius * 2) + (referenceRows - 1) * verticalGap;
-    const firstCenterY =
-      (segmentHeight - referenceStackHeight) / 2 + circleRadius;
+    const { rows, rowStep, firstCenterY } = getCurvedStackLayout(
+      segmentHeight,
+      count,
+      circleRadius * 2,
+      verticalGap,
+      rowsPerColumn,
+    );
 
     // Start after time path with a gap
     const timeEndX = timePathLayout?.isVisible
@@ -183,19 +230,10 @@
     const columnStep = circleRadius * 2 + horizontalGap;
 
     return Array.from({ length: count }, (_, index) => {
-      const column = Math.floor(index / rowsPerColumn);
-      const row = index % rowsPerColumn;
+      const column = Math.floor(index / rows);
+      const row = index % rows;
       const cy = firstCenterY + row * rowStep;
-
-      // Calculate curve position
-      const distanceFromMid = cy - halfCircleRadius;
-      const edgeX = Math.sqrt(
-        Math.max(
-          halfCircleRadius * halfCircleRadius -
-            distanceFromMid * distanceFromMid,
-          0,
-        ),
-      );
+      const edgeX = getCurvedXOffset(halfCircleRadius, cy);
 
       return {
         x: timeEndX + startGap + edgeX + column * columnStep,
@@ -205,7 +243,7 @@
     });
   }
 
-  function getMethodRects(data, errorMarkers, gapScale = 1, originX = 0) {
+  function getMethodRects(data, timePathLayout, originX = 0) {
     const count = getMethodsIndicatorCount(data);
     const segmentHeight = getDetailSegmentHeight(data);
     const safeOriginX = Number.isFinite(Number(originX)) ? Number(originX) : 0;
@@ -215,43 +253,72 @@
     }
 
     const halfCircleRadius = segmentHeight / 2;
-    const { circleRadius, verticalGap, horizontalGap, rowStep, rowsPerColumn } =
-      getPeopleVisualMetrics(segmentHeight);
+    const { circleRadius, rowsPerColumn } = getPeopleVisualMetrics(segmentHeight);
 
-    const referenceRows = Math.min(rowsPerColumn, count);
-    const referenceStackHeight =
-      referenceRows * (circleRadius * 2) + (referenceRows - 1) * verticalGap;
-    const firstCenterY =
-      (segmentHeight - referenceStackHeight) / 2 + circleRadius;
+    const sizeRows = Math.min(rowsPerColumn, MAX_METHOD_COGS_PER_CURVE);
+    const methodCogSize = getMaxMethodCogSize(segmentHeight, sizeRows);
 
-    // Start after errors with a gap
-    const errorsEndX =
-      errorMarkers.length > 0
-        ? Math.max(...errorMarkers.map((m) => m.x + m.size / 2))
-        : safeOriginX + segmentHeight / 2;
-    const startGap = Math.max(8, circleRadius * 1.2) * gapScale;
+    if (methodCogSize <= 0) {
+      return [];
+    }
 
-    const columnStep = circleRadius * 2 + horizontalGap;
+    const verticalGap = Math.max(
+      METHOD_COG_MIN_GAP,
+      methodCogSize * METHOD_COG_VERTICAL_GAP_RATIO,
+    );
+    const { rows: methodRows, rowStep, firstCenterY } = getCurvedStackLayout(
+      segmentHeight,
+      count,
+      methodCogSize,
+      verticalGap,
+      rowsPerColumn,
+      MAX_METHOD_COGS_PER_CURVE,
+    );
+
+    // Start after time path using the same spacing as people -> time.
+    const timeEndX = timePathLayout?.isVisible
+      ? timePathLayout.endTipX
+      : safeOriginX + segmentHeight / 2;
+    const startGap = getPeopleToTimeGap();
+
+    const horizontalGap = Math.max(
+      METHOD_COG_MIN_GAP,
+      methodCogSize * METHOD_COG_HORIZONTAL_GAP_RATIO,
+    );
+    const columnStep = methodCogSize + horizontalGap;
+
+    // Preserve curved rows, but anchor the closest row at the requested gap.
+    const rowEdgeOffsets = Array.from({ length: methodRows }, (_, row) => {
+      const cy = firstCenterY + row * rowStep;
+      return getCurvedXOffset(halfCircleRadius, cy);
+    });
+    const minRowEdgeOffset = Math.min(...rowEdgeOffsets);
+    const maxRowEdgeOffset = Math.max(...rowEdgeOffsets);
+    const curveOffsetShift = Math.min(
+      maxRowEdgeOffset - minRowEdgeOffset,
+      startGap,
+    );
+    const remainingGapAfterCurveShift = Math.max(0, startGap - curveOffsetShift);
+    const methodNudge = Math.min(
+      METHOD_TIME_EXTRA_NUDGE_PX,
+      remainingGapAfterCurveShift,
+    );
 
     return Array.from({ length: count }, (_, index) => {
-      const column = Math.floor(index / rowsPerColumn);
-      const row = index % rowsPerColumn;
+      const column = Math.floor(index / methodRows);
+      const row = index % methodRows;
       const cy = firstCenterY + row * rowStep;
-
-      // Calculate curve position
-      const distanceFromMid = cy - halfCircleRadius;
-      const edgeX = Math.sqrt(
-        Math.max(
-          halfCircleRadius * halfCircleRadius -
-            distanceFromMid * distanceFromMid,
-          0,
-        ),
-      );
+      const edgeX = rowEdgeOffsets[row];
 
       return {
-        x: errorsEndX + startGap + edgeX + column * columnStep,
+        x:
+          timeEndX +
+          startGap +
+          methodCogSize / 2 +
+          (edgeX - minRowEdgeOffset - curveOffsetShift - methodNudge) +
+          column * columnStep,
         y: cy,
-        size: circleRadius * 2,
+        size: methodCogSize,
       };
     });
   }
@@ -277,19 +344,19 @@
     }
 
     const halfCircleRadius = segmentHeight / 2;
-    const { circleRadius, horizontalGap } =
-      getPeopleVisualMetrics(segmentHeight);
+    const { circleRadius } = getPeopleVisualMetrics(segmentHeight);
     const peopleMarkers = getPeopleCircleMarkers(data, safeOriginX);
     const peopleRightEdge =
       peopleMarkers.length > 0
         ? Math.max(...peopleMarkers.map((marker) => marker.cx + marker.r))
         : safeOriginX + halfCircleRadius;
 
-    const startGap = Math.max(
-      0.8,
-      Math.min(horizontalGap, circleRadius * 0.45),
+    const startGap = getPeopleToTimeGap();
+    // Align the visible leading edge (cap midpoint) to the target gap.
+    const startX = Math.max(
+      safeOriginX,
+      peopleRightEdge + startGap - halfCircleRadius,
     );
-    const startX = peopleRightEdge + startGap;
     const rightPadding = Math.max(4, circleRadius);
     const minTipX = startX + halfCircleRadius;
     const maxTipX = Math.min(
@@ -373,8 +440,7 @@
     )}
     {@const methodMarkers = getMethodRects(
       segmentData,
-      errorMarkers,
-      DETAIL_ERRORS_TO_METHODS_GAP_SCALE,
+      timePath,
       segmentVisualOffsetX,
     )}
     <a
@@ -427,7 +493,7 @@
           {#if timePath.isVisible}
             <path class="segment-time-shape" d={timePath.pathD}></path>
           {/if}
-          {#each errorMarkers as errorMarker}
+          <!-- {#each errorMarkers as errorMarker}
             <text
               class="segment-error-mark"
               x={errorMarker.x}
@@ -436,14 +502,16 @@
             >
               &#xf071;
             </text>
-          {/each}
+          {/each} -->
           {#each methodMarkers as methodMarker}
-            <rect
-              class="segment-method-rect"
+            <image
+              class="segment-method-cog"
+              href="/cog.svg"
               x={methodMarker.x - methodMarker.size / 2}
               y={methodMarker.y - methodMarker.size / 2}
               width={methodMarker.size}
               height={methodMarker.size}
+              preserveAspectRatio="xMidYMid meet"
             />
           {/each}
         </svg>
@@ -513,7 +581,7 @@
   }
 
   .segment-time-shape {
-    fill: #ffffff;
+    fill: #5e5e5e;
   }
 
   .segment-people-circle {
@@ -529,8 +597,8 @@
     dominant-baseline: middle;
   }
 
-  .segment-method-rect {
-    fill: rgba(255, 255, 255, 0.9);
+  .segment-method-cog {
+    opacity: 0.95;
   }
 
   .detail-segment:hover {

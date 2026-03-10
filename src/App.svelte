@@ -34,6 +34,8 @@
     ["15:any", 17],
     ["16:any", 18],
   ]);
+  const DETAIL_BASELINE_SEGMENTS = 13;
+  const DETAIL_TITLE_SEGMENTS = 1;
 
   let width;
   let height;
@@ -325,11 +327,8 @@
   }
   $: if (fullChain.length > 0) {
     const availableHeight = Math.max(height ?? 0, 0);
-    const totalUnits = fullChain.reduce(
-      (sum, node) => sum + getDetailSegmentWeight(node),
-      0,
-    ) + 1;
-    segment_height = totalUnits > 0 ? availableHeight / totalUnits : 0;
+    const baselineUnits = DETAIL_BASELINE_SEGMENTS + DETAIL_TITLE_SEGMENTS;
+    segment_height = baselineUnits > 0 ? availableHeight / baselineUnits : 0;
   } else {
     segment_height = 0;
   }
