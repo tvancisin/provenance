@@ -356,7 +356,10 @@
     if (levelUp === 7) {
       d3.select(".trackerCircle").remove();
     } else if (levelUp === 9) {
-      d3.selectAll(".sub_db_research, .research_link").style("stroke", "#bfbfbf");
+      d3.selectAll(".sub_db_research, .research_link").style(
+        "stroke",
+        "#bfbfbf",
+      );
       d3.select(".progPathFirst").remove();
     } else if (levelUp === 10) {
       d3.selectAll(".visPathFirst, .pbiCircle").remove();
@@ -439,6 +442,7 @@
             {yCenter}
             {handleHoverEvent}
             {handleClickEvents}
+            {clicked}
             {rootUp}
           />
         </g>
@@ -446,12 +450,7 @@
       </svg>
     {/if}
   </div>
-  <Details
-    {fullChain}
-    {details_width}
-    {segment_height}
-    innerHeight={height}
-  />
+  <Details {fullChain} {details_width} {segment_height} innerHeight={height} />
 </div>
 
 <style>
@@ -480,8 +479,6 @@
     z-index: 10;
   }
 
-
-
   button {
     width: 50px;
     text-align: center;
@@ -497,5 +494,4 @@
     top: 0px;
     left: 55px;
   }
-
 </style>

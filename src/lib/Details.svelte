@@ -4,21 +4,14 @@
   export let segment_height;
   export let details_width = 300;
 
-
-  function hasGrayBorder(data) {
-    return (
-      data?.name === "PA-X" ||
-      data?.branch_type === "leaf" ||
-      data?.type?.slice(-2) === "db"
-    );
-  }
-
   const TIME_MIN = 0;
   const TIME_MAX = 120;
   const PEOPLE_CIRCLE_SHIFT_X = 3;
   const DETAIL_TIME_TO_ERRORS_GAP_SCALE = -1;
   const DETAIL_ERRORS_TO_METHODS_GAP_SCALE = -1;
-  const LEGEND_SAMPLE_DATA = { people: 10, time: 30, errors: 8, methods: 10 };
+  const SEGMENT_EXPAND_DELTA = 100;
+  const BOTTOM_EXPAND_COUNT = 3;
+  let expandedSegmentIndex = null;
 
   function getDetailSegmentWeight(data) {
     const name = data?.name;
@@ -35,6 +28,32 @@
     const value = Number(height);
     if (!Number.isFinite(value) || value <= 0) return 0;
     return value / 2;
+  }
+
+  function getAlignedSegmentWidth(height) {
+    const fullWidth = Math.max(Number(details_width) || 0, 0);
+    const baseRadius = getDetailSegmentRadius(segment_height);
+    const segmentRadius = getDetailSegmentRadius(height);
+    const widthReduction = Math.max(0, baseRadius - segmentRadius);
+    return Math.max(0, fullWidth - widthReduction);
+  }
+
+  function isBottomSegment(index, totalCount) {
+    return index >= Math.max(0, totalCount - BOTTOM_EXPAND_COUNT);
+  }
+
+  function handleSegmentClick(event, segmentIndex) {
+    event.preventDefault();
+    event.stopPropagation();
+    expandedSegmentIndex =
+      expandedSegmentIndex === segmentIndex ? null : segmentIndex;
+  }
+
+  $: if (
+    expandedSegmentIndex !== null &&
+    expandedSegmentIndex >= fullChain.length
+  ) {
+    expandedSegmentIndex = null;
   }
 
   function getProcessCircleRadius(height, inset = 1.5) {
@@ -243,9 +262,9 @@
     return Math.max(TIME_MIN, Math.min(TIME_MAX, value));
   }
 
-  function getTimePathLayout(data, originX = 0) {
+  function getTimePathLayout(data, originX = 0, widthOverride = details_width) {
     const segmentHeight = getDetailSegmentHeight(data);
-    const segmentWidth = Math.max(Number(details_width) || 0, 0);
+    const segmentWidth = Math.max(Number(widthOverride) || 0, 0);
     const safeOriginX = Number.isFinite(Number(originX)) ? Number(originX) : 0;
 
     if (
@@ -304,255 +323,48 @@
       endTipX,
     };
   }
-
-  function getLegendTextLayout(
-    peopleMarkers,
-    errorMarkers,
-    methodMarkers,
-    timePathLayout,
-  ) {
-    const segmentHeight = Math.max(Number(segment_height) || 0, 0);
-    const segmentWidth = Math.max(Number(details_width) || 0, 0);
-
-    if (segmentHeight <= 0 || segmentWidth <= 0) {
-      return null;
-    }
-
-    const centerY = segmentHeight / 2;
-    const spacing = Math.max(8, Math.min(20, segmentWidth * 0.04));
-    const halfCircleRight = segmentHeight / 2;
-
-    const peopleLeft =
-      peopleMarkers.length > 0
-        ? Math.min(...peopleMarkers.map((marker) => marker.cx - marker.r))
-        : halfCircleRight + spacing;
-    const peopleRight =
-      peopleMarkers.length > 0
-        ? Math.max(...peopleMarkers.map((marker) => marker.cx + marker.r))
-        : peopleLeft + spacing;
-
-    const timeStart = timePathLayout?.isVisible
-      ? timePathLayout.startX
-      : peopleRight + spacing;
-    const timeEnd = timePathLayout?.isVisible
-      ? timePathLayout.endTipX
-      : timeStart + spacing * 2;
-
-    const errorsLeft =
-      errorMarkers.length > 0
-        ? Math.min(...errorMarkers.map((marker) => marker.x - marker.size / 2))
-        : timeEnd + spacing;
-    const errorsRight =
-      errorMarkers.length > 0
-        ? Math.max(...errorMarkers.map((marker) => marker.x + marker.size / 2))
-        : errorsLeft + spacing;
-
-    const methodsLeft =
-      methodMarkers.length > 0
-        ? Math.min(...methodMarkers.map((marker) => marker.x - marker.size / 2))
-        : errorsRight + spacing;
-    const methodsRight =
-      methodMarkers.length > 0
-        ? Math.max(...methodMarkers.map((marker) => marker.x + marker.size / 2))
-        : methodsLeft + spacing;
-
-    const minGapHalfToPeople = Math.max(34, segmentWidth * 0.11);
-    const peopleShiftX = Math.max(
-      0,
-      halfCircleRight + minGapHalfToPeople - peopleLeft,
-    );
-    const shiftedPeopleLeft = peopleLeft + peopleShiftX;
-    const shiftedPeopleRight = peopleRight + peopleShiftX;
-
-    const minGapPeopleToTime = Math.max(30, segmentWidth * 0.09);
-    const timeShiftX = Math.max(
-      0,
-      shiftedPeopleRight + minGapPeopleToTime - timeStart,
-    );
-    const shiftedTimeStart = timeStart + timeShiftX;
-    const shiftedTimeEnd = timeEnd + timeShiftX;
-
-    const minGapTimeToErrors = Math.max(28, segmentWidth * 0.08);
-    const errorsShiftX = Math.max(
-      0,
-      shiftedTimeEnd + minGapTimeToErrors - errorsLeft,
-    );
-    const shiftedErrorsLeft = errorsLeft + errorsShiftX;
-    const shiftedErrorsRight = errorsRight + errorsShiftX;
-
-    const minGapErrorsToMethods = Math.max(42, segmentWidth * 0.12);
-    const methodsShiftX = Math.max(
-      0,
-      shiftedErrorsRight + minGapErrorsToMethods - methodsLeft,
-    );
-    const shiftedMethodsLeft = methodsLeft + methodsShiftX;
-    const shiftedMethodsRight = methodsRight + methodsShiftX;
-
-    const processX = Math.max(
-      halfCircleRight + 10,
-      Math.min(shiftedPeopleLeft - 10, halfCircleRight + 16),
-    );
-
-    const peopleX = Math.max(
-      shiftedPeopleRight + 8,
-      Math.min(shiftedTimeStart - 8, shiftedPeopleRight + 14),
-    );
-
-    const timeX = Math.max(
-      shiftedTimeEnd + 8,
-      Math.min(shiftedErrorsLeft - 8, shiftedTimeEnd + 10),
-    );
-
-    const errorsX = Math.max(
-      shiftedErrorsRight + 8,
-      Math.min(shiftedMethodsLeft - 8, shiftedErrorsRight + 14),
-    );
-
-    const methodsX = Math.min(segmentWidth - 10, shiftedMethodsRight + 17);
-
-    return {
-      titleX: segmentWidth / 2,
-      titleY: Math.max(2, segmentHeight * 0.06),
-      processX,
-      processY: centerY,
-      peopleX,
-      peopleY: centerY,
-      errorsX,
-      errorsY: centerY,
-      methodsX,
-      methodsY: centerY,
-      timeX,
-      timeY: centerY,
-      peopleShiftX,
-      errorsShiftX,
-      methodsShiftX,
-      timeShiftX,
-    };
-  }
-
-  $: legendPeopleMarkers =
-    fullChain.length > 0 && segment_height > 0
-      ? getPeopleCircleMarkers(LEGEND_SAMPLE_DATA)
-      : [];
-  $: legendTimePathLayout =
-    fullChain.length > 0 && segment_height > 0
-      ? getTimePathLayout(LEGEND_SAMPLE_DATA)
-      : { isVisible: false, pathD: "", startX: 0, endTipX: 0 };
-  $: legendErrorMarkers =
-    fullChain.length > 0 && segment_height > 0
-      ? getErrorMarkers(LEGEND_SAMPLE_DATA, legendTimePathLayout)
-      : [];
-  $: legendMethodMarkers =
-    fullChain.length > 0 && segment_height > 0
-      ? getMethodRects(LEGEND_SAMPLE_DATA, legendErrorMarkers)
-      : [];
-  $: legendTextLayout =
-    fullChain.length > 0 && segment_height > 0
-      ? getLegendTextLayout(
-          legendPeopleMarkers,
-          legendErrorMarkers,
-          legendMethodMarkers,
-          legendTimePathLayout,
-        )
-      : null;
 </script>
 
 <div id="details" style="height: {innerHeight}px; width: {details_width}px;">
-  {#if fullChain.length > 0}
+  {#if fullChain.length > 0 && segment_height > 0}
     <div
-      class="detail-segment legend-segment"
+      class="detail-segment detail-title-segment"
       style="
         height: {segment_height}px;
         width: {details_width}px;
         --segment-radius: {getDetailSegmentRadius(segment_height)}px;
       "
     >
-      <svg class="segment-svg" aria-hidden="true" focusable="false">
-        {#if legendTextLayout}
-          <circle
-            class="legend-process-circle"
-            cx={segment_height / 2 - 1}
-            cy={segment_height / 2 - 1}
-            r={getProcessCircleRadius(segment_height, 2)}
-          />
-
-          <text class="legend-label" x={legendTextLayout.processX} y={5}>
-            Process
-          </text>
-
-          {#each legendPeopleMarkers as marker}
-            <circle
-              class="legend-people-circle"
-              cx={marker.cx + legendTextLayout.peopleShiftX}
-              cy={marker.cy}
-              r={marker.r}
-            />
-          {/each}
-
-          <text class="legend-label" x={legendTextLayout.peopleX} y={5}>
-            People
-          </text>
-
-          {#if legendTimePathLayout.isVisible}
-            <path
-              class="legend-time-shape"
-              d={legendTimePathLayout.pathD}
-              transform={`translate(${legendTextLayout.timeShiftX} 0)`}
-            ></path>
-          {/if}
-
-          <text class="legend-label" x={legendTextLayout.timeX} y={5}>
-            Time
-          </text>
-
-          {#each legendErrorMarkers as marker}
-            <text
-              class="legend-error-mark"
-              x={marker.x + legendTextLayout.errorsShiftX}
-              y={marker.y}
-              font-size={marker.size}
-            >
-              &#xf071;
-            </text>
-          {/each}
-
-          <text class="legend-label" x={legendTextLayout.errorsX} y={5}>
-            Errors
-          </text>
-
-          {#each legendMethodMarkers as marker}
-            <rect
-              class="legend-method-rect"
-              x={marker.x + legendTextLayout.methodsShiftX - marker.size / 2}
-              y={marker.y - marker.size / 2}
-              width={marker.size}
-              height={marker.size}
-            />
-          {/each}
-
-          <text class="legend-label" x={legendTextLayout.methodsX} y={5}>
-            Methods
-          </text>
-        {/if}
-      </svg>
+      <span class="detail-title-text">Detail Process View</span>
     </div>
   {/if}
 
   <!-- individual segments -->
-  {#each fullChain as d}
+  {#each fullChain as d, segmentIndex}
     {@const segmentData = d.data}
-    {@const segmentHeight = getDetailSegmentHeight(segmentData)}
-    {@const segmentVisualOffsetX = segmentHeight / 2}
+    {@const baseSegmentHeight = getDetailSegmentHeight(segmentData)}
+    {@const segmentWidth = getAlignedSegmentWidth(baseSegmentHeight)}
+    {@const isExpanded = expandedSegmentIndex === segmentIndex}
+    {@const expandsUp = isBottomSegment(segmentIndex, fullChain.length)}
+    {@const renderedSegmentHeight = isExpanded
+      ? baseSegmentHeight + SEGMENT_EXPAND_DELTA
+      : baseSegmentHeight}
+    {@const segmentVisualOffsetX = baseSegmentHeight / 2}
     {@const segmentProcessCircleCenterX = segmentVisualOffsetX - 1}
-    {@const segmentProcessCircleCenterY = segmentHeight / 2 - 1}
-    {@const segmentProcessLabelX = details_width - 5}
-    {@const segmentProcessLabelY = segmentHeight / 2}
-    {@const segmentProcessCircleRadius = getProcessCircleRadius(segmentHeight)}
+    {@const segmentProcessCircleCenterY = baseSegmentHeight / 2 - 1}
+    {@const segmentProcessLabelX = segmentWidth - 5}
+    {@const segmentProcessLabelY = baseSegmentHeight / 2}
+    {@const segmentProcessCircleRadius =
+      getProcessCircleRadius(baseSegmentHeight)}
     {@const peopleMarkers = getPeopleCircleMarkers(
       segmentData,
       segmentVisualOffsetX,
     )}
-    {@const timePath = getTimePathLayout(segmentData, segmentVisualOffsetX)}
+    {@const timePath = getTimePathLayout(
+      segmentData,
+      segmentVisualOffsetX,
+      segmentWidth,
+    )}
     {@const errorMarkers = getErrorMarkers(
       segmentData,
       timePath,
@@ -565,17 +377,22 @@
       DETAIL_ERRORS_TO_METHODS_GAP_SCALE,
       segmentVisualOffsetX,
     )}
-    <a href={d.data.link} target="_blank">
+    <a
+      href={d.data.link}
+      target="_blank"
+      class="detail-link"
+      on:click={(event) => handleSegmentClick(event, segmentIndex)}
+    >
       <div
-        class="detail-segment {hasGrayBorder(segmentData)
-          ? 'gray-border-segment'
-          : ''}"
+        class="detail-segment"
         style="
-			height: {segmentHeight}px;
-			width: {details_width}px;
+			height: {renderedSegmentHeight}px;
+      width: {segmentWidth}px;
+      margin-left: auto;
+			transform: translateY({isExpanded && expandsUp ? -SEGMENT_EXPAND_DELTA : 0}px);
+			margin-bottom: {isExpanded && expandsUp ? -SEGMENT_EXPAND_DELTA : 0}px;
 			display: flex;
-      --segment-radius: {getDetailSegmentRadius(segmentHeight)}px;
-      border-color: {hasGrayBorder(segmentData) ? 'gray' : '#404040'};
+      --segment-radius: {getDetailSegmentRadius(baseSegmentHeight)}px;
 		  "
       >
         <svg class="segment-svg" aria-hidden="true" focusable="false">
@@ -584,6 +401,12 @@
             cx={segmentProcessCircleCenterX}
             cy={segmentProcessCircleCenterY}
             r={segmentProcessCircleRadius}
+            fill={d.data.name === "PA-X" ||
+            d.data.branch_type === "leaf" ||
+            d.data.type?.slice(-2) === "db" ||
+            d.data.name === "agreement"
+              ? "white"
+              : "#001C23"}
           />
           <text
             class="segment-process-label"
@@ -640,11 +463,34 @@
     color: white;
     display: flex;
     box-sizing: border-box;
-    background-color: #002731;
+    background-color: #001c23;
     border-radius: var(--segment-radius, 10px);
     border: solid 1px rgba(106, 106, 106);
-    transition: border-color 0.2s ease;
+    transition:
+      border-color 0.2s ease,
+      height 0.2s ease,
+      transform 0.2s ease,
+      margin-bottom 0.2s ease;
     overflow: hidden;
+  }
+
+  .detail-link {
+    display: block;
+    text-decoration: none;
+  }
+
+  .detail-title-segment {
+    align-items: center;
+    justify-content: center;
+    border: none;
+  }
+
+  .detail-title-text {
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    color: rgba(255, 255, 255, 0.95);
+    text-align: center;
   }
 
   .segment-svg {
@@ -655,9 +501,8 @@
   }
 
   .segment-process-circle {
-    fill: #001c23;
-    stroke: #00ccff;
-    stroke-width: 1;
+    stroke: orange;
+    stroke-width: 2;
   }
 
   .segment-process-label {
@@ -668,7 +513,7 @@
   }
 
   .segment-time-shape {
-    fill: #d9dfe0;
+    fill: #ffffff;
   }
 
   .segment-people-circle {
@@ -688,47 +533,7 @@
     fill: rgba(255, 255, 255, 0.9);
   }
 
-  .legend-process-circle {
-    fill: none;
-    stroke: #7d7d7d;
-    stroke-width: 2;
-  }
-
-  .legend-people-circle {
-    fill: #8a8a8a;
-  }
-
-  .legend-time-shape {
-    fill: #7d7d7d;
-  }
-
-  .legend-label {
-    font-weight: 600;
-    fill: #9a9a9a;
-    font-size: 10px;
-    text-anchor: middle;
-    dominant-baseline: middle;
-  }
-
-  .legend-error-mark {
-    fill: #8a8a8a;
-    font-size: 10px;
-    font-family: FontAwesome;
-    font-weight: normal;
-    font-style: normal;
-    text-anchor: middle;
-    dominant-baseline: middle;
-  }
-
-  .legend-method-rect {
-    fill: #8a8a8a;
-  }
-
   .detail-segment:hover {
     border-color: rgba(255, 255, 255, 0.8);
-  }
-
-  .detail-segment.gray-border-segment:hover {
-    border-color: rgba(255, 255, 255, 0.8) !important;
   }
 </style>

@@ -12,6 +12,7 @@
   export let handleHoverEvent;
   export let handleClickEvents;
   export let rootUp;
+  export let clicked;
 
   const labelConfig = new Map([
     ["pax_collect", { x: 12 }],
@@ -50,6 +51,29 @@
 
   function inPaXBranch(node) {
     return node.parent?.ancestors().some((a) => a.data.name === "PA-X");
+  }
+
+  // highlighting logic
+  const defaultStroke = "#00CCFF";
+  const mutedStroke = "#005266";
+  const highlightedStroke = "#cc8500";
+
+  $: nonHighlightedPathStroke = clicked ? mutedStroke : defaultStroke;
+
+  $: highlightedNodeIds = new Set();
+  $: {
+    highlightedNodeIds = new Set();
+    for (const linkId of highlightedLinks ?? []) {
+      const [fromId, toId] = String(linkId).split("→");
+      if (fromId) highlightedNodeIds.add(fromId);
+      if (toId) highlightedNodeIds.add(toId);
+    }
+  }
+
+  function nodeStroke(node, isClicked, ids) {
+    const isHighlighted = ids.has(String(node.data.id));
+    if (!isClicked) return isHighlighted ? highlightedStroke : defaultStroke;
+    return isHighlighted ? highlightedStroke : mutedStroke;
   }
 
   let visibleLinksDown = [];
@@ -244,8 +268,8 @@
         ${d.parent.x},${yCenter + d.parent.y}`}
     fill="none"
     stroke={highlightedLinks.has(`${d.parent.data.id}→${d.data.id}`)
-      ? "#cc8500"
-      : "#00ccff"}
+      ? highlightedStroke
+      : nonHighlightedPathStroke}
     stroke-width="1"
   />
 {/each}
@@ -263,7 +287,7 @@
       cy="0"
       r="3"
       fill={d.data.name === "agreement" ? "white" : "#001C23"}
-      stroke="#00ccff"
+      stroke={nodeStroke(d, clicked, highlightedNodeIds)}
       stroke-width="2"
     />
   </g>
@@ -367,10 +391,10 @@
     fill="none"
     stroke-linecap="round"
     stroke={highlightedLinks.has(`${d.parent.data.id}→${d.data.id}`)
-      ? "#cc8500"
+      ? highlightedStroke
       : d.data.name === "Research"
         ? ""
-        : "#00CCFF"}
+        : nonHighlightedPathStroke}
     stroke-width={d.data.branch_type === "trunk"
       ? 17
       : d.data.branch_type === "upper_trunk"
@@ -466,7 +490,7 @@
       d.data.type?.slice(-2) === "db"
         ? "white"
         : "#001C23"}
-      stroke="#00CCFF"
+      stroke={nodeStroke(d, clicked, highlightedNodeIds)}
       stroke-width={sw}
       tabindex="0"
       role="button"
