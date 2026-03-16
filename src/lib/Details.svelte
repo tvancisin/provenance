@@ -17,6 +17,7 @@
   const MAX_METHOD_COGS_PER_CURVE = 4;
   const SEGMENT_EXPAND_DELTA = 100;
   const BOTTOM_EXPAND_COUNT = 3;
+  const COG_ICON_HREF = `${import.meta.env.BASE_URL}cog.svg`;
   let expandedSegmentIndex = null;
 
   // different segment height for pax and conflict
@@ -525,7 +526,7 @@
             {#each methodMarkers as methodMarker}
               <image
                 class="segment-method-cog"
-                href="/cog.svg"
+                href={COG_ICON_HREF}
                 x={methodMarker.x - methodMarker.size / 2}
                 y={methodMarker.y - methodMarker.size / 2}
                 width={methodMarker.size}
