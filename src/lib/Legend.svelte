@@ -3,7 +3,7 @@
 </script>
 
 <!-- LEGEND -->
-<g transform={`translate(${20}, ${50})`}>
+<g transform={`translate(${40}, ${300})`}>
   <!-- Artifact rectangle -->
   <g transform="translate(0, 0)">
     <circle

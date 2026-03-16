@@ -1,5 +1,7 @@
 <script>
   import * as d3 from "d3";
+  import { cubicOut } from "svelte/easing";
+  import { tweened } from "svelte/motion";
   import BackgroundTree from "./lib/BackgroundTree.svelte";
   import ForegroundTree from "./lib/ForegroundTree.svelte";
   import Legend from "./lib/Legend.svelte";
@@ -36,6 +38,9 @@
   ]);
   const DETAIL_BASELINE_SEGMENTS = 13;
   const DETAIL_TITLE_SEGMENTS = 1;
+  const INITIAL_LEVEL = -1;
+  const DOWN_TO_UP_TRIGGER_LEVEL = 2;
+  const TREE_WIDTH_TRANSITION_MS = 450;
 
   let width;
   let height;
@@ -47,12 +52,47 @@
   let nodesDown = [];
   let linksDown = [];
   let ucdpNodes = [];
+  let hasStartedExploring = false;
+  let innerWidth = 0;
+  let previousInnerWidthTarget;
 
-  $: innerWidth = width - margin.right - margin.left;
+  const animatedInnerWidth = tweened(0);
+
   $: innerHeight = height - margin.top - margin.bottom;
   $: yCenter = innerHeight * 0.85;
   $: upHeight = yCenter;
   $: downHeight = innerHeight - upHeight;
+
+  function getTreeWidthTarget(showDetails = false) {
+    const safeWidth = Number(width) || 0;
+
+    if (safeWidth <= 0) return 0;
+
+    return showDetails
+      ? Math.max(safeWidth / 2 - margin.right, 0)
+      : Math.max(safeWidth - margin.right - margin.left, 0);
+  }
+
+  function getDetailsWidthTarget(showDetails = false) {
+    return showDetails ? getTreeWidthTarget(true) : 1;
+  }
+
+  $: if (width !== undefined) {
+    const nextInnerWidthTarget = getTreeWidthTarget(Boolean(clicked));
+
+    if (nextInnerWidthTarget !== previousInnerWidthTarget) {
+      animatedInnerWidth.set(nextInnerWidthTarget, {
+        duration:
+          previousInnerWidthTarget === undefined ? 0 : TREE_WIDTH_TRANSITION_MS,
+        easing: cubicOut,
+      });
+      previousInnerWidthTarget = nextInnerWidthTarget;
+    }
+  }
+
+  $: innerWidth = $animatedInnerWidth;
+  $: details_width = getDetailsWidthTarget(Boolean(clicked));
+
   let rootUp = d3.hierarchy(data, (d) => d.children);
   let rootDown = d3.hierarchy(
     {
@@ -248,13 +288,10 @@
 
   //////////////////////////////// reset to default
   function reset() {
-    innerWidth = width - margin.right - margin.left;
-    details_width = 1;
     fullChain = [];
     clicked = null;
     highlightedLinks = new Set();
     d3.selectAll(".ind_line").style("opacity", 0.5);
-    d3.select("#step_description").style("visibility", "visible");
   }
 
   //////////////////////////////// node hover
@@ -299,14 +336,9 @@
   }
 
   function handleClickEvents(e) {
-    d3.select("#step_description").style("visibility", "hidden");
     d3.selectAll(".ind_line").style("opacity", 0);
-    if (clicked == null) {
-      innerWidth = width / 2 - margin.right;
-    }
     clicked = true;
     fullChain = [];
-    details_width = innerWidth;
     let current = e.node;
     let downCurrent =
       nodesDown.find((node) => node.data.name === "agreement") ?? nodesDown[16];
@@ -351,28 +383,75 @@
     );
   }
 
-  function runWorkflowLevelEffects(levelUp) {
-    if (levelUp === 7) {
-      d3.select(".trackerCircle").remove();
-    } else if (levelUp === 9) {
-      d3.selectAll(".sub_db_research, .research_link").style(
-        "stroke",
-        "#bfbfbf",
-      );
-      d3.select(".progPathFirst").remove();
-    } else if (levelUp === 10) {
-      d3.selectAll(".visPathFirst, .pbiCircle").remove();
-    } else if (levelUp === 14) {
-      d3.selectAll(".vis_link").style("stroke", "#bfbfbf");
-    } else if (levelUp === 15) {
-      d3.selectAll(".sub_vis_research").style("stroke", "#bfbfbf");
-    } else if (levelUp === 16) {
-      d3.selectAll(".ucdp_link").style("stroke", "#bfbfbf");
-    }
+  function getMaxWorkflowUpLevel() {
+    const levels = Array.from(STEP_BY_LEVEL.keys())
+      .map((key) => Number(key.split(":")[0]))
+      .filter((level) => Number.isFinite(level));
+
+    return levels.length > 0 ? Math.max(...levels) : INITIAL_LEVEL;
   }
 
-  let currentLevelDown = -1;
-  let currentLevelUp = -1;
+  function buildWorkflowStates(maxDown, maxUp) {
+    const states = [
+      {
+        levelUp: INITIAL_LEVEL,
+        levelDown: INITIAL_LEVEL,
+      },
+    ];
+    const safeMaxDown =
+      Number.isFinite(maxDown) && maxDown >= INITIAL_LEVEL
+        ? maxDown
+        : INITIAL_LEVEL;
+    const safeMaxUp =
+      Number.isFinite(maxUp) && maxUp >= INITIAL_LEVEL ? maxUp : INITIAL_LEVEL;
+
+    if (safeMaxDown < 0 || safeMaxUp < 0) {
+      return states;
+    }
+
+    let levelUp = INITIAL_LEVEL;
+    let levelDown = INITIAL_LEVEL;
+
+    for (let i = 0; i < 100; i += 1) {
+      if (levelDown < safeMaxDown) {
+        levelDown += 1;
+        if (levelDown === DOWN_TO_UP_TRIGGER_LEVEL && levelUp < safeMaxUp) {
+          levelUp += 1;
+        }
+      } else if (levelUp < safeMaxUp) {
+        levelUp += 1;
+      } else {
+        break;
+      }
+
+      states.push({ levelUp, levelDown });
+    }
+
+    return states;
+  }
+
+  function getCurrentWorkflowStateIndex(states, levelUp, levelDown) {
+    const index = states.findIndex(
+      (state) => state.levelUp === levelUp && state.levelDown === levelDown,
+    );
+
+    return index >= 0 ? index : 0;
+  }
+
+  function applyWorkflowState(stateIndex) {
+    if (!workflowStates.length) return;
+    const clampedIndex = Math.max(
+      0,
+      Math.min(stateIndex, workflowStates.length - 1),
+    );
+    const targetState = workflowStates[clampedIndex];
+    currentLevelUp = targetState.levelUp;
+    currentLevelDown = targetState.levelDown;
+  }
+
+  const maxHeightUp = getMaxWorkflowUpLevel();
+  let currentLevelDown = INITIAL_LEVEL;
+  let currentLevelUp = INITIAL_LEVEL;
   let segment_height;
 
   // levels for downward nodes
@@ -380,45 +459,116 @@
   $: rootDown.descendants().forEach((d) => {
     d.revealLevel = downRevealLevel(d);
   });
-  $: maxHeightDown = Math.max(...nodesDown.map((d) => d.revealLevel));
+  $: maxHeightDown = nodesDown.length
+    ? Math.max(...nodesDown.map((d) => d.revealLevel))
+    : INITIAL_LEVEL;
+  $: workflowStates = buildWorkflowStates(maxHeightDown, maxHeightUp);
+  $: workflowStateIndex = getCurrentWorkflowStateIndex(
+    workflowStates,
+    currentLevelUp,
+    currentLevelDown,
+  );
+  $: isAtWorkflowStart = workflowStateIndex === 1;
+  $: isAtWorkflowEnd = workflowStateIndex >= workflowStates.length - 1;
 
   // next step handler
   function nextStepHandler() {
-    if (currentLevelDown < maxHeightDown) {
-      currentLevelDown += 1;
-      if (currentLevelDown === 2) {
-        currentLevelUp += 1;
-      }
-    } else {
-      currentLevelUp += 1;
+    if (isAtWorkflowEnd) return;
+    applyWorkflowState(workflowStateIndex + 1);
+  }
+
+  function previousStepHandler() {
+    if (isAtWorkflowStart) return;
+    applyWorkflowState(workflowStateIndex - 1);
+  }
+
+  function revealAllHandler() {
+    if (isAtWorkflowEnd) return;
+    applyWorkflowState(workflowStates.length - 1);
+  }
+
+  function startExploringHandler() {
+    hasStartedExploring = true;
+
+    if (workflowStateIndex === 0 && workflowStates.length > 1) {
+      applyWorkflowState(1);
     }
   }
 
-  // update step text + transition highlights
-  $: {
-    const stepIndex = getStepIndex(currentLevelUp, currentLevelDown);
-    if (stepIndex !== undefined) {
-      const description = steps.workflow[stepIndex]?.description;
-      if (description) {
-        const stepDescription = d3.select("#step_description");
-        if (currentLevelUp === -1 && currentLevelDown === 0) {
-          stepDescription.style("visibility", "visible");
-        }
-
-        stepDescription.html(description);
-        runWorkflowLevelEffects(currentLevelUp);
-      }
-    }
-  }
+  $: currentStepIndex = hasStartedExploring
+    ? getStepIndex(currentLevelUp, currentLevelDown)
+    : undefined;
+  $: currentStepDescription =
+    currentStepIndex !== undefined
+      ? (steps.workflow[currentStepIndex]?.description ?? "")
+      : "";
+  $: showStepDescription = Boolean(currentStepDescription) && !clicked;
 
   // $: console.log(currentLevelUp);
 </script>
 
 <div id="wrapper" bind:clientWidth={width} bind:clientHeight={height}>
-  <div id="step_description"></div>
+  {#if !hasStartedExploring}
+    <div class="intro-overlay">
+      <div class="intro-card">
+        <p class="intro-text">
+          This visualization shows processes that take place from the point of
+          conflict, all the way to the development of peacetech tools.
+        </p>
+        <button
+          class="intro-button"
+          type="button"
+          on:click={startExploringHandler}
+        >
+          Explore
+        </button>
+      </div>
+    </div>
+  {/if}
+  <!-- {#if !clicked}
+    <h1>PA-X Provenance</h1>
+  {/if} -->
+  {#if showStepDescription}
+    <div id="step_description">
+      <div class="controls">
+        <button
+          id="back"
+          type="button"
+          on:click={previousStepHandler}
+          disabled={isAtWorkflowStart}
+          aria-label="Previous step"
+          title="Previous step"
+        >
+          <i class="fa fa-arrow-left" aria-hidden="true"></i>
+        </button>
+        <button
+          id="next"
+          type="button"
+          on:click={nextStepHandler}
+          disabled={isAtWorkflowEnd}
+          aria-label="Next step"
+          title="Next step"
+        >
+          <i class="fa fa-arrow-right" aria-hidden="true"></i>
+        </button>
+        <button
+          id="reveal-all"
+          type="button"
+          on:click={revealAllHandler}
+          disabled={isAtWorkflowEnd}
+          aria-label="Reveal all"
+          title="Reveal all"
+        >
+          <i class="fa fa-star" aria-hidden="true"></i>
+        </button>
+      </div>
+      <div id="step_description_text">
+        {@html currentStepDescription}
+      </div>
+    </div>
+  {/if}
+
   <div class="tree">
-    <button id="reset" on:click={reset}>reset</button>
-    <button id="next" on:click={nextStepHandler}>next</button>
     {#if width !== undefined || height !== undefined}
       <svg {width} {height}>
         <g transform={`translate(${margin.right}, ${margin.top})`}>
@@ -429,6 +579,7 @@
             {nodesDown}
             {regionLabels}
             {yCenter}
+            {clicked}
           />
           <ForegroundTree
             {nodesUp}
@@ -445,11 +596,17 @@
             {rootUp}
           />
         </g>
-        <Legend {currentLevelDown} />
+        <!-- <Legend {currentLevelDown} /> -->
       </svg>
     {/if}
   </div>
-  <Details {fullChain} {details_width} {segment_height} innerHeight={height} />
+  <Details
+    {fullChain}
+    {details_width}
+    {segment_height}
+    innerHeight={height}
+    onReset={reset}
+  />
 </div>
 
 <style>
@@ -459,38 +616,114 @@
     display: flex;
   }
 
+  h1 {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    z-index: 10;
+    margin: 0;
+  }
+
+  .intro-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 30;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: rgba(0, 28, 35, 0.55);
+    backdrop-filter: blur(6px);
+  }
+
+  .intro-card {
+    width: min(640px, calc(100vw - 48px));
+    padding: 28px 32px;
+    border: solid 1px rgba(255, 255, 255, 0.2);
+    border-radius: 5px;
+    background: rgba(0, 28, 35, 0.94);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+    text-align: center;
+  }
+
+  .intro-text {
+    margin: 0 0 20px;
+    color: rgba(255, 255, 255, 0.92);
+    font-size: 18px;
+    line-height: 1.5;
+  }
+
+  .intro-button {
+    padding: 10px 18px;
+    border: none;
+    border-radius: 999px;
+    background: #ffffff;
+    color: #001c23;
+    font-size: 14px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+  }
+
   .tree {
     width: 70%;
     height: 100vh;
   }
 
   #step_description {
-    visibility: hidden;
     position: absolute;
-    top: 60%;
+    top: 55%;
     left: 5px;
     width: 30%;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
     color: rgb(255, 255, 255);
     font-size: 13px;
     background-color: #001c23;
-    padding: 20px 20px;
     border-radius: 5px;
     z-index: 10;
   }
 
-  button {
-    width: 50px;
-    text-align: center;
-  }
-  #reset {
-    position: absolute;
-    top: 0px;
-    left: 0px;
+  #step_description_text {
+    line-height: 1.5;
+    padding: 5px;
   }
 
-  #next {
-    position: absolute;
-    top: 0px;
-    left: 55px;
+  .controls {
+    display: flex;
+    justify-content: flex-start;
+    gap: 6px;
+  }
+
+  .controls button {
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    border: solid 1px rgba(255, 255, 255, 0.2);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.08);
+    color: white;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    cursor: pointer;
+  }
+
+  .controls button:hover:enabled {
+    background: rgba(255, 255, 255, 0.16);
+  }
+
+  .controls button i {
+    font-size: 14px;
+  }
+
+  button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
   }
 </style>

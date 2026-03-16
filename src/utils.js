@@ -10,6 +10,7 @@ let original_data = {
   methods: ["web scrape", "news", "social media", "word of mouth", "email"],
   time: 10,
   type: "pax_collect",
+  segment_text: "Blady bla bla bla...",
   children: [
     {
       name: "Translate",

@@ -277,7 +277,7 @@
 <!-- downward gradual nodes -->
 {#each visibleNodesDown as d}
   <g transform={`translate(${d.x}, ${yCenter + d.y})`}>
-    {#if firstNodeByLevelDown.get(d.revealLevel) === d}
+    {#if firstNodeByLevelDown.get(d.revealLevel) === d && !clicked}
       <text x={-10} y={3} font-size="12" fill="white" text-anchor="end">
         {d.data.name.charAt(0).toUpperCase() + d.data.name.slice(1)}
       </text>
@@ -411,74 +411,76 @@
   {@const sw = strokeWidth(d.data.ppl)}
   {@const dots = getPeopleDots(d.data.ppl)}
   <g transform={`translate(${d.x}, ${yCenter - d.y})`}>
-    {#if labelConfig.has(d.data.type)}
-      <rect
-        x={labelConfig.get(d.data.type).x + 8}
-        y={-10}
-        width={d.data.name.length * 7}
-        height={16}
-        fill="#001C23"
-        rx="3"
-        opacity="0.8"
-      />
-      <text
-        x={labelConfig.get(d.data.type).x + 10}
-        y={0}
-        font-size="12"
-        fill="white"
-      >
-        {d.data.name}
-      </text>
-    {/if}
-
-    {#if d.data.name && labelMap.has(d.data.name)}
-      {#if !labelMap.get(d.data.name).maxLevel || currentLevelUp < labelMap.get(d.data.name).maxLevel}
-        {@const lm = labelMap.get(d.data.name)}
+    {#if !clicked}
+      {#if labelConfig.has(d.data.type)}
         <rect
-          x={18}
-          y={(lm.y ?? 0) - 10}
-          width={lm.text.length * 7}
+          x={labelConfig.get(d.data.type).x + 8}
+          y={-10}
+          width={d.data.name.length * 7}
           height={16}
           fill="#001C23"
           rx="3"
           opacity="0.8"
-          transform={lm.rotate
-            ? `rotate(${lm.rotate}, 20, ${lm.y ?? 5})`
-            : null}
+        />
+        <text
+          x={labelConfig.get(d.data.type).x + 10}
+          y={0}
+          font-size="12"
+          fill="white"
+        >
+          {d.data.name}
+        </text>
+      {/if}
+
+      {#if d.data.name && labelMap.has(d.data.name)}
+        {#if !labelMap.get(d.data.name).maxLevel || currentLevelUp < labelMap.get(d.data.name).maxLevel}
+          {@const lm = labelMap.get(d.data.name)}
+          <rect
+            x={18}
+            y={(lm.y ?? 0) - 10}
+            width={lm.text.length * 7}
+            height={16}
+            fill="#001C23"
+            rx="3"
+            opacity="0.8"
+            transform={lm.rotate
+              ? `rotate(${lm.rotate}, 20, ${lm.y ?? 5})`
+              : null}
+          />
+          <text
+            x={20}
+            y={lm.y ?? 0}
+            font-size="12"
+            fill="white"
+            transform={lm.rotate
+              ? `rotate(${lm.rotate}, 20, ${lm.y ?? 5})`
+              : null}
+          >
+            {lm.text}
+          </text>
+        {/if}
+      {:else if d.data.type && labelByCategory.has(d.data.type)}
+        {@const lc = labelByCategory.get(d.data.type)}
+        <rect
+          x={18}
+          y={-10}
+          width={lc.text.length * 7}
+          height={16}
+          fill="#001C23"
+          rx="3"
+          opacity="0.8"
+          transform={lc.rotate ? `rotate(${lc.rotate}, -5, 5)` : null}
         />
         <text
           x={20}
-          y={lm.y ?? 0}
+          y={0}
           font-size="12"
           fill="white"
-          transform={lm.rotate
-            ? `rotate(${lm.rotate}, 20, ${lm.y ?? 5})`
-            : null}
+          transform={lc.rotate ? `rotate(${lc.rotate}, -5, 5)` : null}
         >
-          {lm.text}
+          {lc.text}
         </text>
       {/if}
-    {:else if d.data.type && labelByCategory.has(d.data.type)}
-      {@const lc = labelByCategory.get(d.data.type)}
-      <rect
-        x={18}
-        y={-10}
-        width={lc.text.length * 7}
-        height={16}
-        fill="#001C23"
-        rx="3"
-        opacity="0.8"
-        transform={lc.rotate ? `rotate(${lc.rotate}, -5, 5)` : null}
-      />
-      <text
-        x={20}
-        y={0}
-        font-size="12"
-        fill="white"
-        transform={lc.rotate ? `rotate(${lc.rotate}, -5, 5)` : null}
-      >
-        {lc.text}
-      </text>
     {/if}
 
     <circle

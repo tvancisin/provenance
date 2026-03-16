@@ -7,6 +7,7 @@
   export let regionLabels = [];
   export let currentLevelUp;
   export let yCenter;
+  export let clicked = false;
 
   $: researchNode = nodesUp.find((d) => d.data.name == "Research");
   $: subdatabaseNode1 = nodesUp.find((d) => d.data.type == "paax_db");
@@ -20,6 +21,14 @@
   $: ucdpRoot = ucdpNodes.find((d) => d.data.name === "__ucdp_root__");
   $: globeNode = nodesUp.find((d) => d.data.name === "Data Overview");
   $: trackerNode = nodesUp.find((d) => d.data.name === "Tracker");
+  $: isResearchDeemphasized = currentLevelUp >= 9;
+  $: isSubVisDeemphasized = currentLevelUp >= 15;
+  $: isUcdpDeemphasized = currentLevelUp >= 16;
+  $: ucdpLinkStroke = clicked
+    ? "#404040"
+    : isUcdpDeemphasized
+      ? "#bfbfbf"
+      : "#404040";
 
   $: x1 = globeNode ? globeNode.x + 4 : 0;
   $: y1 = globeNode ? yCenter - globeNode.y : 0;
@@ -74,7 +83,7 @@
   <path
     fill="none"
     class="sub_db_research"
-    stroke="gray"
+    stroke={isResearchDeemphasized ? "#bfbfbf" : "gray"}
     stroke-width="5"
     stroke-dasharray="10 5"
     d={createBezier(researchNode, subdatabaseNode2, subdatabaseNode1)}
@@ -83,7 +92,7 @@
 {#if researchNode && visFem && visInfographics}
   <path
     fill="none"
-    stroke="gray"
+    stroke={isSubVisDeemphasized ? "#bfbfbf" : "gray"}
     class="sub_vis_research"
     stroke-width="5"
     stroke-dasharray="10 5"
@@ -106,7 +115,7 @@
     L ${x2},${y2}
   `}
   fill="none"
-  stroke="#404040"
+  stroke={ucdpLinkStroke}
   stroke-width="4"
   class="ucdp_link"
   stroke-opacity="0.7"
@@ -125,7 +134,7 @@
     L ${xt2},${yt2}
   `}
   fill="none"
-  stroke="#404040"
+  stroke={ucdpLinkStroke}
   stroke-width="4"
   class="ucdp_link"
   stroke-opacity="0.7"
@@ -137,7 +146,7 @@
         ${d.parent.x},${yCenter + d.parent.y + 70} 
         ${d.parent.x},${yCenter + d.parent.y}`}
     fill="none"
-    stroke="#404040"
+    stroke={ucdpLinkStroke}
     stroke-opacity="0.4"
     class="ucdp_link"
     stroke-width="1"
@@ -151,11 +160,11 @@
       class="ucdp_link"
       r={d.data.name == "__ucdp_root__" ? 7 : 0}
       fill={d.data.name == "__ucdp_root__" ? "#001C23" : "none"}
-      stroke="#404040"
+      stroke={ucdpLinkStroke}
       stroke-width="3"
     ></circle>
     {#if d.data.name == "__ucdp_root__"}
-      {#if currentLevelUp >= 16}
+      {#if currentLevelUp >= 16 && !clicked}
         <text x="10" y="0" font-size="10" fill="white" text-anchor="start">
           UCDP/ACLED
         </text>
@@ -169,7 +178,11 @@
     d={getUpwardLinkPath(d, yCenter)}
     fill="none"
     stroke-linecap={d.data.name === "Research" ? "butt" : "round"}
-    stroke={d.data.name === "Research" ? "gray" : "#005266"}
+    stroke={d.data.name === "Research"
+      ? isResearchDeemphasized
+        ? "#bfbfbf"
+        : "gray"
+      : "#005266"}
     stroke-dasharray={d.data.name === "Research" ? "10 5" : null}
     class={d.data.name === "Research" ? "research_link" : ""}
     stroke-width={d.data.branch_type === "trunk"
@@ -223,15 +236,17 @@
 {/each}
 
 <!-- continent labels -->
-{#each regionLabels as r}
-  <text
-    x={r.x}
-    y={r.y}
-    text-anchor="middle"
-    font-size="12"
-    fill="white"
-    letter-spacing="0.5"
-  >
-    {r.continent.replace("_", " ") + ` (${r.count})`}
-  </text>
-{/each}
+{#if currentLevelUp >= 16 && !clicked}
+  {#each regionLabels as r}
+    <text
+      x={r.x}
+      y={r.y}
+      text-anchor="middle"
+      font-size="12"
+      fill="white"
+      letter-spacing="0.5"
+    >
+      {r.continent.replace("_", " ") + ` (${r.count})`}
+    </text>
+  {/each}
+{/if}

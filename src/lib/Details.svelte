@@ -3,6 +3,7 @@
   export let innerHeight = window.innerHeight;
   export let segment_height;
   export let details_width = 300;
+  export let onReset = () => {};
 
   const TIME_MIN = 0;
   const TIME_MAX = 120;
@@ -18,6 +19,7 @@
   const BOTTOM_EXPAND_COUNT = 3;
   let expandedSegmentIndex = null;
 
+  // different segment height for pax and conflict
   function getDetailSegmentWeight(data) {
     const name = data?.name;
     return name === "agreement" || name === "negotiation" || name === "conflict"
@@ -253,7 +255,8 @@
     }
 
     const halfCircleRadius = segmentHeight / 2;
-    const { circleRadius, rowsPerColumn } = getPeopleVisualMetrics(segmentHeight);
+    const { circleRadius, rowsPerColumn } =
+      getPeopleVisualMetrics(segmentHeight);
 
     const sizeRows = Math.min(rowsPerColumn, MAX_METHOD_COGS_PER_CURVE);
     const methodCogSize = getMaxMethodCogSize(segmentHeight, sizeRows);
@@ -266,7 +269,11 @@
       METHOD_COG_MIN_GAP,
       methodCogSize * METHOD_COG_VERTICAL_GAP_RATIO,
     );
-    const { rows: methodRows, rowStep, firstCenterY } = getCurvedStackLayout(
+    const {
+      rows: methodRows,
+      rowStep,
+      firstCenterY,
+    } = getCurvedStackLayout(
       segmentHeight,
       count,
       methodCogSize,
@@ -298,7 +305,10 @@
       maxRowEdgeOffset - minRowEdgeOffset,
       startGap,
     );
-    const remainingGapAfterCurveShift = Math.max(0, startGap - curveOffsetShift);
+    const remainingGapAfterCurveShift = Math.max(
+      0,
+      startGap - curveOffsetShift,
+    );
     const methodNudge = Math.min(
       METHOD_TIME_EXTRA_NUDGE_PX,
       remainingGapAfterCurveShift,
@@ -403,6 +413,13 @@
       "
     >
       <span class="detail-title-text">Detail Process View</span>
+      <button
+        class="detail-reset-button"
+        type="button"
+        on:click={onReset}
+        title="Reset"
+        ><i class="fa fa-undo" aria-hidden="true"></i>
+      </button>
     </div>
   {/if}
 
@@ -452,71 +469,83 @@
       <div
         class="detail-segment"
         style="
-			height: {renderedSegmentHeight}px;
-      width: {segmentWidth}px;
-      margin-left: auto;
-			transform: translateY({isExpanded && expandsUp ? -SEGMENT_EXPAND_DELTA : 0}px);
-			margin-bottom: {isExpanded && expandsUp ? -SEGMENT_EXPAND_DELTA : 0}px;
-			display: flex;
-      --segment-radius: {getDetailSegmentRadius(baseSegmentHeight)}px;
-		  "
+    height: {renderedSegmentHeight}px;
+    width: {segmentWidth}px;
+    margin-left: auto;
+    transform: translateY({isExpanded && expandsUp
+          ? -SEGMENT_EXPAND_DELTA
+          : 0}px);
+    margin-bottom: {isExpanded && expandsUp ? -SEGMENT_EXPAND_DELTA : 0}px;
+    --segment-radius: {getDetailSegmentRadius(baseSegmentHeight)}px;
+  "
       >
-        <svg class="segment-svg" aria-hidden="true" focusable="false">
-          <circle
-            class="segment-process-circle"
-            cx={segmentProcessCircleCenterX}
-            cy={segmentProcessCircleCenterY}
-            r={segmentProcessCircleRadius}
-            fill={d.data.name === "PA-X" ||
-            d.data.branch_type === "leaf" ||
-            d.data.type?.slice(-2) === "db" ||
-            d.data.name === "agreement"
-              ? "white"
-              : "#001C23"}
-          />
-          <text
-            class="segment-process-label"
-            x={segmentProcessLabelX - 5}
-            y={segmentProcessLabelY}
-            font-size={10}
-          >
-            {segmentData?.name}
-          </text>
-          {#each peopleMarkers as marker}
+        <div class="segment-svg-shell" style="height: {baseSegmentHeight}px;">
+          <svg class="segment-svg" aria-hidden="true" focusable="false">
             <circle
-              class="segment-people-circle"
-              cx={marker.cx}
-              cy={marker.cy}
-              r={marker.r}
+              class="segment-process-circle"
+              cx={segmentProcessCircleCenterX}
+              cy={segmentProcessCircleCenterY + 0.2}
+              r={segmentProcessCircleRadius - 2}
+              fill={d.data.name === "PA-X" ||
+              d.data.branch_type === "leaf" ||
+              d.data.type?.slice(-2) === "db" ||
+              d.data.name === "agreement"
+                ? "white"
+                : "#001C23"}
             />
-          {/each}
-          {#if timePath.isVisible}
-            <path class="segment-time-shape" d={timePath.pathD}></path>
-          {/if}
-          <!-- {#each errorMarkers as errorMarker}
             <text
-              class="segment-error-mark"
-              x={errorMarker.x}
-              y={errorMarker.y}
-              font-size={11}
+              class="segment-process-label"
+              x={segmentProcessLabelX - 5}
+              y={segmentProcessLabelY}
+              font-size={10}
             >
-              &#xf071;
+              {segmentData?.name}
             </text>
-          {/each} -->
-          {#each methodMarkers as methodMarker}
-            <image
-              class="segment-method-cog"
-              href="/cog.svg"
-              x={methodMarker.x - methodMarker.size / 2}
-              y={methodMarker.y - methodMarker.size / 2}
-              width={methodMarker.size}
-              height={methodMarker.size}
-              preserveAspectRatio="xMidYMid meet"
-            />
-          {/each}
-        </svg>
-      </div></a
-    >
+            {#each peopleMarkers as marker}
+              <circle
+                class="segment-people-circle"
+                cx={marker.cx}
+                cy={marker.cy}
+                r={marker.r}
+              />
+            {/each}
+            {#if timePath.isVisible}
+              <path class="segment-time-shape" d={timePath.pathD}></path>
+            {/if}
+            <!-- {#each errorMarkers as errorMarker}
+        <text
+          class="segment-error-mark"
+          x={errorMarker.x}
+          y={errorMarker.y}
+          font-size={11}
+        >
+          &#xf071;
+        </text>
+      {/each} -->
+            {#each methodMarkers as methodMarker}
+              <image
+                class="segment-method-cog"
+                href="/cog.svg"
+                x={methodMarker.x - methodMarker.size / 2}
+                y={methodMarker.y - methodMarker.size / 2}
+                width={methodMarker.size}
+                height={methodMarker.size}
+                preserveAspectRatio="xMidYMid meet"
+              />
+            {/each}
+          </svg>
+        </div>
+
+        {#if isExpanded}
+          <div
+            class="segment-expanded-content"
+            style="height: {SEGMENT_EXPAND_DELTA}px;"
+          >
+            {segmentData?.segment_text ?? ""}
+          </div>
+        {/if}
+      </div>
+    </a>
   {/each}
 </div>
 
@@ -525,11 +554,14 @@
     position: absolute;
     top: 0px;
     right: 0px;
+    overflow: hidden;
+    transition: width 0.45s cubic-bezier(0.215, 0.61, 0.355, 1);
   }
 
   .detail-segment {
     color: white;
     display: flex;
+    flex-direction: column;
     box-sizing: border-box;
     background-color: #001c23;
     border-radius: var(--segment-radius, 10px);
@@ -542,12 +574,37 @@
     overflow: hidden;
   }
 
+  .segment-svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+    pointer-events: none;
+  }
+
+  .segment-svg-shell {
+    width: 100%;
+    flex: 0 0 auto;
+  }
+
+  .segment-expanded-content {
+    width: 100%;
+    flex: 0 0 auto;
+    padding: 10px 12px;
+    box-sizing: border-box;
+    border-top: solid 1px rgba(106, 106, 106, 0.5);
+    color: rgba(255, 255, 255, 0.92);
+    font-size: 12px;
+    line-height: 1.35;
+    overflow: auto;
+  }
+
   .detail-link {
     display: block;
     text-decoration: none;
   }
 
   .detail-title-segment {
+    position: relative;
     align-items: center;
     justify-content: center;
     border: none;
@@ -561,6 +618,30 @@
     text-align: center;
   }
 
+  .detail-reset-button {
+    position: absolute;
+    top: 50%;
+    right: 10px;
+    transform: translateY(-50%);
+    width: 35px;
+    height: 35px;
+    padding: 0;
+    box-sizing: border-box;
+    border: solid 1px rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.08);
+    color: white;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    cursor: pointer;
+  }
+
+  .detail-reset-button:hover {
+    background: rgba(255, 255, 255, 0.16);
+  }
+
   .segment-svg {
     width: 100%;
     height: 100%;
@@ -569,8 +650,8 @@
   }
 
   .segment-process-circle {
-    stroke: orange;
-    stroke-width: 2;
+    stroke: #cc8500;
+    stroke-width: 5;
   }
 
   .segment-process-label {
@@ -586,15 +667,6 @@
 
   .segment-people-circle {
     fill: rgba(255, 255, 255, 0.85);
-  }
-
-  .segment-error-mark {
-    fill: rgba(255, 255, 255, 0.95);
-    font-family: FontAwesome;
-    font-weight: normal;
-    font-style: normal;
-    text-anchor: middle;
-    dominant-baseline: middle;
   }
 
   .segment-method-cog {
