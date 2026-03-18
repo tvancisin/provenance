@@ -83,7 +83,7 @@
   <path
     fill="none"
     class="sub_db_research"
-    stroke={isResearchDeemphasized ? "#bfbfbf" : "gray"}
+    stroke={isResearchDeemphasized ? "white" : "gray"}
     stroke-width="5"
     stroke-dasharray="10 5"
     d={createBezier(researchNode, subdatabaseNode2, subdatabaseNode1)}
@@ -92,7 +92,7 @@
 {#if researchNode && visFem && visInfographics}
   <path
     fill="none"
-    stroke={isSubVisDeemphasized ? "#bfbfbf" : "gray"}
+    stroke={isSubVisDeemphasized ? "white" : "gray"}
     class="sub_vis_research"
     stroke-width="5"
     stroke-dasharray="10 5"
@@ -180,7 +180,7 @@
     stroke-linecap={d.data.name === "Research" ? "butt" : "round"}
     stroke={d.data.name === "Research"
       ? isResearchDeemphasized
-        ? "#bfbfbf"
+        ? "white"
         : "gray"
       : "#005266"}
     stroke-dasharray={d.data.name === "Research" ? "10 5" : null}

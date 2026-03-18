@@ -54,7 +54,7 @@
   }
 
   // highlighting logic
-  const defaultStroke = "#00CCFF";
+  const defaultStroke = "#00a3cc";
   const mutedStroke = "#005266";
   const highlightedStroke = "#cc8500";
 
@@ -497,8 +497,8 @@
       tabindex="0"
       role="button"
       aria-label="Node details"
-      on:mouseenter={() => handleHoverEvent({ node: d })}
-      on:mouseleave={() => handleHoverEvent({ node: null })}
+      on:mouseenter={(event) => handleHoverEvent({ node: d, event })}
+      on:mouseleave={(event) => handleHoverEvent({ node: null, event })}
       on:click={() => handleClickEvents({ node: d })}
       on:keydown={(e) => {
         if (e.key === "Enter" || e.key === " ") {

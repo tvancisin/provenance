@@ -42,6 +42,7 @@
   const DOWN_TO_UP_TRIGGER_LEVEL = 2;
   const TREE_WIDTH_TRANSITION_MS = 450;
 
+  let wrapperElement;
   let width;
   let height;
   let details_width = 1;
@@ -267,7 +268,10 @@
     const allLinksDown = allNodesDown.filter((d) => d.parent);
     // agreement-level nodes
     const agreementNodes = allNodesDown.filter((d) => d.depth === 1);
-    removedAgreements = pickRandom(agreementNodes, 20);
+    // only compute removedAgreements once on first load
+    if (!removedAgreements) {
+      removedAgreements = pickRandom(agreementNodes, 20);
+    }
 
     // filter nodes
     nodesDown = allNodesDown.filter((d) => {
@@ -290,19 +294,50 @@
   function reset() {
     fullChain = [];
     clicked = null;
+    hoveredNodeName = "";
     highlightedLinks = new Set();
     d3.selectAll(".ind_line").style("opacity", 0.5);
   }
 
   //////////////////////////////// node hover
   let highlightedLinks = new Set();
+  let hoveredNodeName = "";
+  let hoveredNodeX = 0;
+  let hoveredNodeY = 0;
+
+  function setHoveredNodePosition(event) {
+    if (!event) return;
+
+    const wrapperBounds = wrapperElement?.getBoundingClientRect();
+    const offsetLeft = wrapperBounds?.left ?? 0;
+    const offsetTop = wrapperBounds?.top ?? 0;
+
+    // Anchor to the hovered node geometry so tooltip offset stays stable.
+    if (typeof event.currentTarget?.getBoundingClientRect === "function") {
+      const nodeBounds = event.currentTarget.getBoundingClientRect();
+      const nodeCenterX = nodeBounds.left + nodeBounds.width / 2;
+      const nodeTopY = nodeBounds.top;
+
+      hoveredNodeX = nodeCenterX - offsetLeft;
+      hoveredNodeY = nodeTopY - offsetTop - 8;
+      return;
+    }
+
+    hoveredNodeX = event.clientX - offsetLeft;
+    hoveredNodeY = event.clientY - offsetTop - 8;
+  }
+
   function handleHoverEvent(e) {
     if (!clicked) {
       let node = e.node;
       if (!node) {
+        hoveredNodeName = "";
         highlightedLinks = new Set();
         return;
       }
+
+      setHoveredNodePosition(e.event);
+      hoveredNodeName = node.data?.name ?? "";
 
       const links = new Set();
 
@@ -337,6 +372,7 @@
 
   function handleClickEvents(e) {
     d3.selectAll(".ind_line").style("opacity", 0);
+    hoveredNodeName = "";
     clicked = true;
     fullChain = [];
     let current = e.node;
@@ -507,7 +543,12 @@
   // $: console.log(currentLevelUp);
 </script>
 
-<div id="wrapper" bind:clientWidth={width} bind:clientHeight={height}>
+<div
+  id="wrapper"
+  bind:this={wrapperElement}
+  bind:clientWidth={width}
+  bind:clientHeight={height}
+>
   {#if !hasStartedExploring}
     <div class="intro-overlay">
       <div class="intro-card">
@@ -515,6 +556,38 @@
           This visualization shows processes that take place from the point of
           conflict, all the way to the development of peacetech tools.
         </p>
+        <p
+          style="font-size: 14px; color: rgba(255, 255, 255, 0.8); margin: 20px 20px 20px;"
+        >
+          Use arrow buttons to navigate through the workflow or the star button
+          to reveal everything at once:
+        </p>
+        <div class="controls_intro">
+          <button
+            id="back"
+            type="button"
+            aria-label="Previous step"
+            title="Previous step"
+          >
+            <i class="fa fa-arrow-left" aria-hidden="true"></i>
+          </button>
+          <button
+            id="next"
+            type="button"
+            aria-label="Next step"
+            title="Next step"
+          >
+            <i class="fa fa-arrow-right" aria-hidden="true"></i>
+          </button>
+          <button
+            id="reveal-all"
+            type="button"
+            aria-label="Reveal all"
+            title="Reveal all"
+          >
+            <i class="fa fa-star" aria-hidden="true"></i>
+          </button>
+        </div>
         <button
           class="intro-button"
           type="button"
@@ -568,6 +641,15 @@
     </div>
   {/if}
 
+  {#if hoveredNodeName && !clicked}
+    <div
+      class="node-hover-tooltip"
+      style={`left: ${hoveredNodeX}px; top: ${hoveredNodeY}px;`}
+    >
+      {hoveredNodeName}
+    </div>
+  {/if}
+
   <div class="tree">
     {#if width !== undefined || height !== undefined}
       <svg {width} {height}>
@@ -611,9 +693,24 @@
 
 <style>
   #wrapper {
+    position: relative;
     width: 100%;
     height: 100vh;
     display: flex;
+  }
+
+  .node-hover-tooltip {
+    position: absolute;
+    z-index: 25;
+    transform: translate(-50%, -100%);
+    padding: 6px 10px;
+    border: solid 1px rgba(255, 255, 255, 0.25);
+    border-radius: 4px;
+    background: rgba(0, 28, 35, 0.95);
+    color: white;
+    font-size: 12px;
+    pointer-events: none;
+    white-space: nowrap;
   }
 
   h1 {
@@ -651,8 +748,7 @@
   .intro-text {
     margin: 0 0 20px;
     color: rgba(255, 255, 255, 0.92);
-    font-size: 18px;
-    line-height: 1.5;
+    font-size: 16px;
   }
 
   .intro-button {
@@ -697,6 +793,27 @@
     display: flex;
     justify-content: flex-start;
     gap: 6px;
+  }
+
+  .controls_intro {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    margin-bottom: 20px;
+  }
+
+  .controls_intro button {
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: solid 1px rgba(255, 255, 255, 0.2);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.08);
+    color: white;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
   }
 
   .controls button {

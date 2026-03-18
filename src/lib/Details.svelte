@@ -7,17 +7,19 @@
 
   const TIME_MIN = 0;
   const TIME_MAX = 120;
-  const DETAIL_SHARED_GAP_PX = 20;
+  const DETAIL_SHARED_GAP_PX = 15;
+  const DETAIL_SEPARATOR_GAP_PX = 12;
+  const ERROR_MARKER_EXTRA_OFFSET = 8;
   const PEOPLE_CIRCLE_SHIFT_X = 3;
-  const DETAIL_TIME_TO_ERRORS_GAP_SCALE = -1;
   const METHOD_COG_VERTICAL_GAP_RATIO = 0.12;
   const METHOD_COG_HORIZONTAL_GAP_RATIO = 0.2;
   const METHOD_COG_MIN_GAP = 1;
   const METHOD_TIME_EXTRA_NUDGE_PX = 6;
-  const MAX_METHOD_COGS_PER_CURVE = 4;
+  const MAX_METHOD_COGS_PER_CURVE = 3;
   const SEGMENT_EXPAND_DELTA = 100;
   const BOTTOM_EXPAND_COUNT = 3;
   const COG_ICON_HREF = `${import.meta.env.BASE_URL}cog.svg`;
+  const ERROR_ICON_HREF = `${import.meta.env.BASE_URL}error.svg`;
   let expandedSegmentIndex = null;
 
   // different segment height for pax and conflict
@@ -204,7 +206,12 @@
     });
   }
 
-  function getErrorMarkers(data, timePathLayout, gapScale = 1, originX = 0) {
+  function getErrorMarkers(
+    data,
+    methodMarkers = [],
+    timePathLayout,
+    originX = 0,
+  ) {
     const count = getErrorsIndicatorCount(data);
     const segmentHeight = getDetailSegmentHeight(data);
     const safeOriginX = Number.isFinite(Number(originX)) ? Number(originX) : 0;
@@ -214,36 +221,151 @@
     }
 
     const halfCircleRadius = segmentHeight / 2;
-    const { circleRadius, verticalGap, horizontalGap, rowsPerColumn } =
-      getPeopleVisualMetrics(segmentHeight);
-    const { rows, rowStep, firstCenterY } = getCurvedStackLayout(
+    const { rowsPerColumn } = getPeopleVisualMetrics(segmentHeight);
+    const sizeRows = Math.min(rowsPerColumn, MAX_METHOD_COGS_PER_CURVE);
+    const errorIconSize = getMaxMethodCogSize(segmentHeight, sizeRows);
+
+    if (errorIconSize <= 0) {
+      return [];
+    }
+
+    const verticalGap = Math.max(
+      METHOD_COG_MIN_GAP,
+      errorIconSize * METHOD_COG_VERTICAL_GAP_RATIO,
+    );
+    const {
+      rows: errorRows,
+      rowStep,
+      firstCenterY,
+    } = getCurvedStackLayout(
       segmentHeight,
       count,
-      circleRadius * 2,
+      errorIconSize,
       verticalGap,
       rowsPerColumn,
+      MAX_METHOD_COGS_PER_CURVE,
     );
 
-    // Start after time path with a gap
-    const timeEndX = timePathLayout?.isVisible
+    const horizontalGap = Math.max(
+      METHOD_COG_MIN_GAP,
+      errorIconSize * METHOD_COG_HORIZONTAL_GAP_RATIO,
+    );
+    const columnStep = errorIconSize + horizontalGap;
+
+    const fallbackAnchorX = timePathLayout?.isVisible
       ? timePathLayout.endTipX
       : safeOriginX + segmentHeight / 2;
-    const startGap = Math.max(8, circleRadius * 1.2) * gapScale;
+    const methodRightEdge =
+      methodMarkers.length > 0
+        ? Math.max(...methodMarkers.map((marker) => marker.x + marker.size / 2))
+        : fallbackAnchorX;
+    const startAnchorX =
+      methodRightEdge + getPeopleToTimeGap() + ERROR_MARKER_EXTRA_OFFSET;
 
-    const columnStep = circleRadius * 2 + horizontalGap;
+    const rowEdgeOffsets = Array.from({ length: errorRows }, (_, row) => {
+      const cy = firstCenterY + row * rowStep;
+      return getCurvedXOffset(halfCircleRadius, cy);
+    });
+    const minRowEdgeOffset = Math.min(...rowEdgeOffsets);
 
     return Array.from({ length: count }, (_, index) => {
-      const column = Math.floor(index / rows);
-      const row = index % rows;
+      const column = Math.floor(index / errorRows);
+      const row = index % errorRows;
       const cy = firstCenterY + row * rowStep;
-      const edgeX = getCurvedXOffset(halfCircleRadius, cy);
+      const edgeX = rowEdgeOffsets[row];
 
       return {
-        x: timeEndX + startGap + edgeX + column * columnStep,
+        x:
+          startAnchorX +
+          errorIconSize / 2 +
+          (edgeX - minRowEdgeOffset) +
+          column * columnStep,
         y: cy,
-        size: circleRadius * 1.6,
+        size: errorIconSize,
       };
     });
+  }
+
+  function getMethodErrorSeparatorPath(
+    data,
+    methodMarkers = [],
+    errorMarkers = [],
+  ) {
+    const segmentHeight = getDetailSegmentHeight(data);
+
+    if (
+      methodMarkers.length === 0 ||
+      errorMarkers.length === 0 ||
+      !Number.isFinite(segmentHeight) ||
+      segmentHeight <= 0
+    ) {
+      return { isVisible: false, pathD: "" };
+    }
+
+    const halfCircleRadius = segmentHeight / 2;
+    const methodStemLowerBound = Math.max(
+      ...methodMarkers.map((marker) => {
+        const edgeX = getCurvedXOffset(halfCircleRadius, marker.y);
+        return marker.x + (Number(marker.size) || 0) / 2 - edgeX;
+      }),
+    );
+    const errorStemUpperBound = Math.min(
+      ...errorMarkers.map((marker) => {
+        const edgeX = getCurvedXOffset(halfCircleRadius, marker.y);
+        return marker.x - (Number(marker.size) || 0) / 2 - edgeX;
+      }),
+    );
+
+    if (
+      !Number.isFinite(methodStemLowerBound) ||
+      !Number.isFinite(errorStemUpperBound) ||
+      errorStemUpperBound <= methodStemLowerBound
+    ) {
+      return { isVisible: false, pathD: "" };
+    }
+
+    const separatorStemX =
+      methodStemLowerBound +
+      (errorStemUpperBound - methodStemLowerBound) / 2 +
+      0;
+    const pathD = `M ${separatorStemX} 0 A ${halfCircleRadius} ${halfCircleRadius} 0 0 1 ${separatorStemX} ${segmentHeight}`;
+
+    return {
+      isVisible: true,
+      pathD,
+    };
+  }
+
+  function getErrorRightSeparatorPath(data, errorMarkers = []) {
+    const segmentHeight = getDetailSegmentHeight(data);
+
+    if (
+      errorMarkers.length === 0 ||
+      !Number.isFinite(segmentHeight) ||
+      segmentHeight <= 0
+    ) {
+      return { isVisible: false, pathD: "" };
+    }
+
+    const halfCircleRadius = segmentHeight / 2;
+    const errorStemLowerBound = Math.max(
+      ...errorMarkers.map((marker) => {
+        const edgeX = getCurvedXOffset(halfCircleRadius, marker.y);
+        return marker.x + (Number(marker.size) || 0) / 2 - edgeX;
+      }),
+    );
+
+    if (!Number.isFinite(errorStemLowerBound)) {
+      return { isVisible: false, pathD: "" };
+    }
+
+    const separatorStemX = errorStemLowerBound + DETAIL_SEPARATOR_GAP_PX;
+    const pathD = `M ${separatorStemX} 0 A ${halfCircleRadius} ${halfCircleRadius} 0 0 1 ${separatorStemX} ${segmentHeight}`;
+
+    return {
+      isVisible: true,
+      pathD,
+    };
   }
 
   function getMethodRects(data, timePathLayout, originX = 0) {
@@ -450,16 +572,25 @@
       segmentVisualOffsetX,
       segmentWidth,
     )}
-    {@const errorMarkers = getErrorMarkers(
-      segmentData,
-      timePath,
-      DETAIL_TIME_TO_ERRORS_GAP_SCALE,
-      segmentVisualOffsetX,
-    )}
     {@const methodMarkers = getMethodRects(
       segmentData,
       timePath,
       segmentVisualOffsetX,
+    )}
+    {@const errorMarkers = getErrorMarkers(
+      segmentData,
+      methodMarkers,
+      timePath,
+      segmentVisualOffsetX,
+    )}
+    {@const methodErrorSeparator = getMethodErrorSeparatorPath(
+      segmentData,
+      methodMarkers,
+      errorMarkers,
+    )}
+    {@const errorRightSeparator = getErrorRightSeparatorPath(
+      segmentData,
+      errorMarkers,
     )}
     <a
       href={d.data.link}
@@ -513,16 +644,6 @@
             {#if timePath.isVisible}
               <path class="segment-time-shape" d={timePath.pathD}></path>
             {/if}
-            <!-- {#each errorMarkers as errorMarker}
-        <text
-          class="segment-error-mark"
-          x={errorMarker.x}
-          y={errorMarker.y}
-          font-size={11}
-        >
-          &#xf071;
-        </text>
-      {/each} -->
             {#each methodMarkers as methodMarker}
               <image
                 class="segment-method-cog"
@@ -534,6 +655,29 @@
                 preserveAspectRatio="xMidYMid meet"
               />
             {/each}
+            {#if methodErrorSeparator.isVisible}
+              <path
+                class="segment-method-error-separator"
+                d={methodErrorSeparator.pathD}
+              ></path>
+            {/if}
+            {#each errorMarkers as errorMarker}
+              <image
+                class="segment-error-icon"
+                href={ERROR_ICON_HREF}
+                x={errorMarker.x - errorMarker.size / 2}
+                y={errorMarker.y - errorMarker.size / 2}
+                width={errorMarker.size}
+                height={errorMarker.size}
+                preserveAspectRatio="xMidYMid meet"
+              />
+            {/each}
+            {#if errorRightSeparator.isVisible}
+              <path
+                class="segment-error-right-separator"
+                d={errorRightSeparator.pathD}
+              ></path>
+            {/if}
           </svg>
         </div>
 
@@ -566,7 +710,7 @@
     box-sizing: border-box;
     background-color: #001c23;
     border-radius: var(--segment-radius, 10px);
-    border: solid 1px rgba(106, 106, 106);
+    border: solid 1px rgb(51, 51, 51);
     transition:
       border-color 0.2s ease,
       height 0.2s ease,
@@ -643,13 +787,6 @@
     background: rgba(255, 255, 255, 0.16);
   }
 
-  .segment-svg {
-    width: 100%;
-    height: 100%;
-    display: block;
-    pointer-events: none;
-  }
-
   .segment-process-circle {
     stroke: #cc8500;
     stroke-width: 5;
@@ -663,18 +800,33 @@
   }
 
   .segment-time-shape {
-    fill: #5e5e5e;
+    fill: #595959;
   }
 
   .segment-people-circle {
-    fill: rgba(255, 255, 255, 0.85);
+    fill: rgb(255, 255, 255);
   }
 
   .segment-method-cog {
     opacity: 0.95;
   }
 
+  .segment-method-error-separator {
+    fill: none;
+    stroke: rgba(255, 255, 255, 0.85);
+    stroke-width: 2;
+  }
+  .segment-error-right-separator {
+    fill: none;
+    stroke: #595959;
+    stroke-width: 2;
+  }
+
+  .segment-error-icon {
+    opacity: 0.95;
+  }
+
   .detail-segment:hover {
-    border-color: rgba(255, 255, 255, 0.8);
+    border-color: rgba(126, 126, 126, 0.8);
   }
 </style>
