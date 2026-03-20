@@ -1,55 +1,21 @@
 <script>
   export let fullChain = [];
-  export let innerHeight = window.innerHeight;
   export let segment_height;
-  export let details_width = 300;
+  export let details_width = 1;
   export let onReset = () => {};
 
-  const TIME_MIN = 0;
-  const TIME_MAX = 120;
-  const DETAIL_SHARED_GAP_PX = 15;
-  const DETAIL_SEPARATOR_GAP_PX = 12;
-  const ERROR_MARKER_EXTRA_OFFSET = 8;
-  const PEOPLE_CIRCLE_SHIFT_X = 3;
-  const METHOD_COG_VERTICAL_GAP_RATIO = 0.12;
-  const METHOD_COG_HORIZONTAL_GAP_RATIO = 0.2;
-  const METHOD_COG_MIN_GAP = 1;
-  const METHOD_TIME_EXTRA_NUDGE_PX = 6;
-  const MAX_METHOD_COGS_PER_CURVE = 3;
+  // half height for conflict, negotiation, and agreement segment
+  const HALF_HEIGHT_SEGMENT_COUNT = 3;
+  // how much segment expands on click
   const SEGMENT_EXPAND_DELTA = 100;
-  const BOTTOM_EXPAND_COUNT = 3;
-  const COG_ICON_HREF = `${import.meta.env.BASE_URL}cog.svg`;
-  const ERROR_ICON_HREF = `${import.meta.env.BASE_URL}error.svg`;
+  // one lane each: process, time, expertise, methods, errors, text
+  const SEGMENT_LANE_COUNT = 5;
+  const SEGMENT_SVG_PADDING_X = 8;
+  const LANE_CONTENT_PADDING = 2;
   let expandedSegmentIndex = null;
 
-  // different segment height for pax and conflict
-  function getDetailSegmentWeight(data) {
-    const name = data?.name;
-    return name === "agreement" || name === "negotiation" || name === "conflict"
-      ? 0.5
-      : 1;
-  }
-
-  function getDetailSegmentHeight(data) {
-    return segment_height * getDetailSegmentWeight(data);
-  }
-
-  function getDetailSegmentRadius(height) {
-    const value = Number(height);
-    if (!Number.isFinite(value) || value <= 0) return 0;
-    return value / 2;
-  }
-
-  function getAlignedSegmentWidth(height) {
-    const fullWidth = Math.max(Number(details_width) || 0, 0);
-    const baseRadius = getDetailSegmentRadius(segment_height);
-    const segmentRadius = getDetailSegmentRadius(height);
-    const widthReduction = Math.max(0, baseRadius - segmentRadius);
-    return Math.max(0, fullWidth - widthReduction);
-  }
-
   function isBottomSegment(index, totalCount) {
-    return index >= Math.max(0, totalCount - BOTTOM_EXPAND_COUNT);
+    return index >= Math.max(0, totalCount - HALF_HEIGHT_SEGMENT_COUNT);
   }
 
   function handleSegmentClick(event, segmentIndex) {
@@ -66,476 +32,136 @@
     expandedSegmentIndex = null;
   }
 
-  function getProcessCircleRadius(height, inset = 1.5) {
-    const baseRadius = getDetailSegmentRadius(height);
-    const safeInset = Number.isFinite(Number(inset)) ? Number(inset) : 0;
-    return Math.max(0, baseRadius - safeInset);
+  $: maxPplInChain = fullChain.reduce((max, node) => {
+    const ppl = Number(node?.data?.ppl) || 0;
+    return Math.max(max, ppl);
+  }, 1);
+
+  $: maxTimeInChain = fullChain.reduce((max, node) => {
+    const time = numericTimeValue(node?.data?.time);
+    return Math.max(max, time);
+  }, 0);
+
+  $: maxMethodsInChain = fullChain.reduce((max, node) => {
+    const count = getMethodsCount(node?.data?.methods);
+    return Math.max(max, count);
+  }, 1);
+
+  $: maxErrorsInChain = fullChain.reduce((max, node) => {
+    const count = getErrorsCount(node?.data?.errors);
+    return Math.max(max, count);
+  }, 1);
+
+  // process circles logic
+  function nodeRadius(ppl) {
+    const MIN_R = 5,
+      MAX_R = 28,
+      MAX_PPL = 50;
+    return MIN_R + (Math.sqrt(ppl) / Math.sqrt(MAX_PPL)) * (MAX_R - MIN_R);
   }
 
-  function getPeopleIndicatorCount(data) {
-    const value = Number(data?.people ?? data?.ppl);
-    if (!Number.isFinite(value) || value <= 0) return 0;
-    return Math.round(value);
-  }
-
-  function getErrorsIndicatorCount(data) {
-    const value = Number(data?.errors ?? data?.error);
-    if (!Number.isFinite(value) || value <= 0) return 0;
-    return Math.round(value);
-  }
-
-  function getMethodsIndicatorCount(data) {
-    const value = Number(data?.methods?.length ?? data?.methods);
-    if (!Number.isFinite(value) || value <= 0) return 0;
-    return Math.round(value);
-  }
-
-  function getPeopleVisualMetrics(segmentHeight) {
-    const circleRadius = Math.max(1.8, Math.min(3.4, segmentHeight * 0.055));
-    const verticalGap = Math.max(0.8, circleRadius * 0.65);
-    const horizontalGap = Math.max(1.2, circleRadius * 0.9);
-    const rowStep = circleRadius * 2 + verticalGap;
-    const verticalInset = Math.max(1.5, circleRadius * 0.6);
-    const usableHeight = Math.max(
-      segmentHeight - verticalInset * 2,
-      circleRadius * 2,
-    );
-    const rowsPerColumn = Math.max(
-      1,
-      Math.floor((usableHeight + verticalGap) / rowStep),
-    );
-
-    return {
-      circleRadius,
-      verticalGap,
-      horizontalGap,
-      rowsPerColumn,
-    };
-  }
-
-  function getPeopleToTimeGap() {
-    return DETAIL_SHARED_GAP_PX;
-  }
-
-  function getCurvedXOffset(halfCircleRadius, y) {
-    const distanceFromMid = y - halfCircleRadius;
-    return Math.sqrt(
-      Math.max(
-        halfCircleRadius * halfCircleRadius - distanceFromMid * distanceFromMid,
-        0,
-      ),
-    );
-  }
-
-  function getCurvedStackLayout(
-    segmentHeight,
-    count,
-    markerSize,
-    verticalGap,
-    rowsPerColumn,
-    maxRows = Number.POSITIVE_INFINITY,
-  ) {
-    const rows = Math.min(rowsPerColumn, count, maxRows);
-    const rowStep = markerSize + verticalGap;
-    const stackHeight = rows * markerSize + (rows - 1) * verticalGap;
-    const firstCenterY = (segmentHeight - stackHeight) / 2 + markerSize / 2;
-
-    return {
-      rows,
-      rowStep,
-      firstCenterY,
-    };
-  }
-
-  function getMaxMethodCogSize(segmentHeight, rows) {
-    const safeRows = Math.max(1, Number(rows) || 1);
-    const safeHeight = Number(segmentHeight);
-
-    if (!Number.isFinite(safeHeight) || safeHeight <= 0) {
-      return 0;
-    }
-
-    const verticalInset = Math.max(1, safeHeight * 0.03);
-    const usableHeight = Math.max(0, safeHeight - verticalInset * 2);
-    const denominator =
-      safeRows + (safeRows - 1) * METHOD_COG_VERTICAL_GAP_RATIO;
-
-    if (denominator <= 0) {
-      return 0;
-    }
-
-    return usableHeight / denominator;
-  }
-
-  function getPeopleCircleMarkers(data, originX = 0) {
-    const count = getPeopleIndicatorCount(data);
-    const segmentHeight = getDetailSegmentHeight(data);
-    const safeOriginX = Number.isFinite(Number(originX)) ? Number(originX) : 0;
-
-    if (count <= 0 || !Number.isFinite(segmentHeight) || segmentHeight <= 0) {
-      return [];
-    }
-
-    const halfCircleRadius = segmentHeight / 2;
-    const { circleRadius, verticalGap, horizontalGap, rowsPerColumn } =
-      getPeopleVisualMetrics(segmentHeight);
-    const { rows, rowStep, firstCenterY } = getCurvedStackLayout(
-      segmentHeight,
-      count,
-      circleRadius * 2,
-      verticalGap,
-      rowsPerColumn,
-    );
-
-    const edgeClearance = circleRadius + Math.max(2.5, circleRadius * 0.9);
-    const columnStep = circleRadius * 2 + horizontalGap;
-
-    return Array.from({ length: count }, (_, index) => {
-      const column = Math.floor(index / rows);
-      const row = index % rows;
-      const cy = firstCenterY + row * rowStep;
-      const edgeX = getCurvedXOffset(halfCircleRadius, cy);
-
-      const offsetFromEdge = edgeClearance + column * columnStep;
-
-      return {
-        cx: safeOriginX + edgeX + offsetFromEdge + PEOPLE_CIRCLE_SHIFT_X,
-        cy,
-        r: circleRadius,
-      };
+  function getPeopleDots(ppl, scale = 1) {
+    const r = nodeRadius(ppl);
+    const dr = 2,
+      gap = 1;
+    const dotSpacing = dr * 2 + gap;
+    const dotsPerRing = Math.max(1, Math.floor((2 * Math.PI * r) / dotSpacing));
+    const numRings = Math.ceil(ppl / dotsPerRing);
+    return Array.from({ length: ppl }, (_, i) => {
+      const ring = Math.floor(i / dotsPerRing);
+      const posInRing = i % dotsPerRing;
+      const angle = posInRing * ((2 * Math.PI) / dotsPerRing) - Math.PI / 2;
+      const ringOffset = (ring - (numRings - 1) / 2) * dotSpacing;
+      const ringR = r + ringOffset;
+      return { cx: ringR * Math.cos(angle) * scale, cy: ringR * Math.sin(angle) * scale };
     });
   }
 
-  function getErrorMarkers(
-    data,
-    methodMarkers = [],
-    timePathLayout,
-    originX = 0,
-  ) {
-    const count = getErrorsIndicatorCount(data);
-    const segmentHeight = getDetailSegmentHeight(data);
-    const safeOriginX = Number.isFinite(Number(originX)) ? Number(originX) : 0;
-
-    if (count <= 0 || !Number.isFinite(segmentHeight) || segmentHeight <= 0) {
-      return [];
-    }
-
-    const halfCircleRadius = segmentHeight / 2;
-    const { rowsPerColumn } = getPeopleVisualMetrics(segmentHeight);
-    const sizeRows = Math.min(rowsPerColumn, MAX_METHOD_COGS_PER_CURVE);
-    const errorIconSize = getMaxMethodCogSize(segmentHeight, sizeRows);
-
-    if (errorIconSize <= 0) {
-      return [];
-    }
-
-    const verticalGap = Math.max(
-      METHOD_COG_MIN_GAP,
-      errorIconSize * METHOD_COG_VERTICAL_GAP_RATIO,
-    );
-    const {
-      rows: errorRows,
-      rowStep,
-      firstCenterY,
-    } = getCurvedStackLayout(
-      segmentHeight,
-      count,
-      errorIconSize,
-      verticalGap,
-      rowsPerColumn,
-      MAX_METHOD_COGS_PER_CURVE,
-    );
-
-    const horizontalGap = Math.max(
-      METHOD_COG_MIN_GAP,
-      errorIconSize * METHOD_COG_HORIZONTAL_GAP_RATIO,
-    );
-    const columnStep = errorIconSize + horizontalGap;
-
-    const fallbackAnchorX = timePathLayout?.isVisible
-      ? timePathLayout.endTipX
-      : safeOriginX + segmentHeight / 2;
-    const methodRightEdge =
-      methodMarkers.length > 0
-        ? Math.max(...methodMarkers.map((marker) => marker.x + marker.size / 2))
-        : fallbackAnchorX;
-    const startAnchorX =
-      methodRightEdge + getPeopleToTimeGap() + ERROR_MARKER_EXTRA_OFFSET;
-
-    const rowEdgeOffsets = Array.from({ length: errorRows }, (_, row) => {
-      const cy = firstCenterY + row * rowStep;
-      return getCurvedXOffset(halfCircleRadius, cy);
-    });
-    const minRowEdgeOffset = Math.min(...rowEdgeOffsets);
-
-    return Array.from({ length: count }, (_, index) => {
-      const column = Math.floor(index / errorRows);
-      const row = index % errorRows;
-      const cy = firstCenterY + row * rowStep;
-      const edgeX = rowEdgeOffsets[row];
-
-      return {
-        x:
-          startAnchorX +
-          errorIconSize / 2 +
-          (edgeX - minRowEdgeOffset) +
-          column * columnStep,
-        y: cy,
-        size: errorIconSize,
-      };
-    });
-  }
-
-  function getMethodErrorSeparatorPath(
-    data,
-    methodMarkers = [],
-    errorMarkers = [],
-  ) {
-    const segmentHeight = getDetailSegmentHeight(data);
-
-    if (
-      methodMarkers.length === 0 ||
-      errorMarkers.length === 0 ||
-      !Number.isFinite(segmentHeight) ||
-      segmentHeight <= 0
-    ) {
-      return { isVisible: false, pathD: "" };
-    }
-
-    const halfCircleRadius = segmentHeight / 2;
-    const methodStemLowerBound = Math.max(
-      ...methodMarkers.map((marker) => {
-        const edgeX = getCurvedXOffset(halfCircleRadius, marker.y);
-        return marker.x + (Number(marker.size) || 0) / 2 - edgeX;
-      }),
-    );
-    const errorStemUpperBound = Math.min(
-      ...errorMarkers.map((marker) => {
-        const edgeX = getCurvedXOffset(halfCircleRadius, marker.y);
-        return marker.x - (Number(marker.size) || 0) / 2 - edgeX;
-      }),
-    );
-
-    if (
-      !Number.isFinite(methodStemLowerBound) ||
-      !Number.isFinite(errorStemUpperBound) ||
-      errorStemUpperBound <= methodStemLowerBound
-    ) {
-      return { isVisible: false, pathD: "" };
-    }
-
-    const separatorStemX =
-      methodStemLowerBound +
-      (errorStemUpperBound - methodStemLowerBound) / 2 +
-      0;
-    const pathD = `M ${separatorStemX} 0 A ${halfCircleRadius} ${halfCircleRadius} 0 0 1 ${separatorStemX} ${segmentHeight}`;
-
-    return {
-      isVisible: true,
-      pathD,
-    };
-  }
-
-  function getErrorRightSeparatorPath(data, errorMarkers = []) {
-    const segmentHeight = getDetailSegmentHeight(data);
-
-    if (
-      errorMarkers.length === 0 ||
-      !Number.isFinite(segmentHeight) ||
-      segmentHeight <= 0
-    ) {
-      return { isVisible: false, pathD: "" };
-    }
-
-    const halfCircleRadius = segmentHeight / 2;
-    const errorStemLowerBound = Math.max(
-      ...errorMarkers.map((marker) => {
-        const edgeX = getCurvedXOffset(halfCircleRadius, marker.y);
-        return marker.x + (Number(marker.size) || 0) / 2 - edgeX;
-      }),
-    );
-
-    if (!Number.isFinite(errorStemLowerBound)) {
-      return { isVisible: false, pathD: "" };
-    }
-
-    const separatorStemX = errorStemLowerBound + DETAIL_SEPARATOR_GAP_PX;
-    const pathD = `M ${separatorStemX} 0 A ${halfCircleRadius} ${halfCircleRadius} 0 0 1 ${separatorStemX} ${segmentHeight}`;
-
-    return {
-      isVisible: true,
-      pathD,
-    };
-  }
-
-  function getMethodRects(data, timePathLayout, originX = 0) {
-    const count = getMethodsIndicatorCount(data);
-    const segmentHeight = getDetailSegmentHeight(data);
-    const safeOriginX = Number.isFinite(Number(originX)) ? Number(originX) : 0;
-
-    if (count <= 0 || !Number.isFinite(segmentHeight) || segmentHeight <= 0) {
-      return [];
-    }
-
-    const halfCircleRadius = segmentHeight / 2;
-    const { circleRadius, rowsPerColumn } =
-      getPeopleVisualMetrics(segmentHeight);
-
-    const sizeRows = Math.min(rowsPerColumn, MAX_METHOD_COGS_PER_CURVE);
-    const methodCogSize = getMaxMethodCogSize(segmentHeight, sizeRows);
-
-    if (methodCogSize <= 0) {
-      return [];
-    }
-
-    const verticalGap = Math.max(
-      METHOD_COG_MIN_GAP,
-      methodCogSize * METHOD_COG_VERTICAL_GAP_RATIO,
-    );
-    const {
-      rows: methodRows,
-      rowStep,
-      firstCenterY,
-    } = getCurvedStackLayout(
-      segmentHeight,
-      count,
-      methodCogSize,
-      verticalGap,
-      rowsPerColumn,
-      MAX_METHOD_COGS_PER_CURVE,
-    );
-
-    // Start after time path using the same spacing as people -> time.
-    const timeEndX = timePathLayout?.isVisible
-      ? timePathLayout.endTipX
-      : safeOriginX + segmentHeight / 2;
-    const startGap = getPeopleToTimeGap();
-
-    const horizontalGap = Math.max(
-      METHOD_COG_MIN_GAP,
-      methodCogSize * METHOD_COG_HORIZONTAL_GAP_RATIO,
-    );
-    const columnStep = methodCogSize + horizontalGap;
-
-    // Preserve curved rows, but anchor the closest row at the requested gap.
-    const rowEdgeOffsets = Array.from({ length: methodRows }, (_, row) => {
-      const cy = firstCenterY + row * rowStep;
-      return getCurvedXOffset(halfCircleRadius, cy);
-    });
-    const minRowEdgeOffset = Math.min(...rowEdgeOffsets);
-    const maxRowEdgeOffset = Math.max(...rowEdgeOffsets);
-    const curveOffsetShift = Math.min(
-      maxRowEdgeOffset - minRowEdgeOffset,
-      startGap,
-    );
-    const remainingGapAfterCurveShift = Math.max(
+  function circleScale(referencePpl, maxHalfHeight, maxHalfWidth) {
+    const r = nodeRadius(referencePpl);
+    const sw = nodeStrokeWidth(referencePpl);
+    const outer = r + sw / 2;
+    if (outer <= 0) return 1;
+    return Math.max(
       0,
-      startGap - curveOffsetShift,
+      Math.min(1, maxHalfHeight / outer, maxHalfWidth / outer),
     );
-    const methodNudge = Math.min(
-      METHOD_TIME_EXTRA_NUDGE_PX,
-      remainingGapAfterCurveShift,
-    );
-
-    return Array.from({ length: count }, (_, index) => {
-      const column = Math.floor(index / methodRows);
-      const row = index % methodRows;
-      const cy = firstCenterY + row * rowStep;
-      const edgeX = rowEdgeOffsets[row];
-
-      return {
-        x:
-          timeEndX +
-          startGap +
-          methodCogSize / 2 +
-          (edgeX - minRowEdgeOffset - curveOffsetShift - methodNudge) +
-          column * columnStep,
-        y: cy,
-        size: methodCogSize,
-      };
-    });
   }
 
-  function getTimeValue(data) {
-    const value = Number(data?.time);
-    if (!Number.isFinite(value)) return TIME_MIN;
-    return Math.max(TIME_MIN, Math.min(TIME_MAX, value));
+  function nodeFill(d) {
+    return d.data.name === "PA-X" ||
+      d.data.branch_type === "leaf" ||
+      d.data.type?.slice(-2) === "db"
+      ? "white"
+      : "#001C23";
   }
 
-  function getTimePathLayout(data, originX = 0, widthOverride = details_width) {
-    const segmentHeight = getDetailSegmentHeight(data);
-    const segmentWidth = Math.max(Number(widthOverride) || 0, 0);
-    const safeOriginX = Number.isFinite(Number(originX)) ? Number(originX) : 0;
+  function numericTimeValue(value) {
+    if (typeof value === "number" && Number.isFinite(value)) {
+      return Math.max(0, value);
+    }
+    const parsed = Number.parseFloat(String(value ?? "").replace(/[^0-9.-]/g, ""));
+    return Number.isFinite(parsed) ? Math.max(0, parsed) : 0;
+  }
 
-    if (
-      !Number.isFinite(segmentHeight) ||
-      segmentHeight <= 0 ||
-      !Number.isFinite(segmentWidth) ||
-      segmentWidth <= 0
-    ) {
-      return { isVisible: false, pathD: "", startX: 0, endTipX: 0 };
+  function getMethodsCount(value) {
+    if (Array.isArray(value)) return value.length;
+    const count = Number(value);
+    return Number.isFinite(count) ? Math.max(0, Math.floor(count)) : 0;
+  }
+
+  function getErrorsCount(value) {
+    if (Array.isArray(value)) return value.length;
+    const count = Number(value);
+    return Number.isFinite(count) ? Math.max(0, Math.floor(count)) : 0;
+  }
+
+  function wrapWordsToLines(text, maxWidthPx, fontSizePx) {
+    const value = String(text ?? "").trim();
+    if (!value) return [];
+
+    const words = value.split(/\s+/);
+    const approxCharWidth = fontSizePx * 0.58;
+    const maxCharsPerLine = Math.max(1, Math.floor(maxWidthPx / approxCharWidth));
+
+    const lines = [];
+    let currentLine = "";
+
+    for (const word of words) {
+      const nextLine = currentLine ? `${currentLine} ${word}` : word;
+      if (nextLine.length <= maxCharsPerLine || !currentLine) {
+        currentLine = nextLine;
+      } else {
+        lines.push(currentLine);
+        currentLine = word;
+      }
     }
 
-    const halfCircleRadius = segmentHeight / 2;
-    const { circleRadius } = getPeopleVisualMetrics(segmentHeight);
-    const peopleMarkers = getPeopleCircleMarkers(data, safeOriginX);
-    const peopleRightEdge =
-      peopleMarkers.length > 0
-        ? Math.max(...peopleMarkers.map((marker) => marker.cx + marker.r))
-        : safeOriginX + halfCircleRadius;
+    if (currentLine) lines.push(currentLine);
+    return lines;
+  }
 
-    const startGap = getPeopleToTimeGap();
-    // Align the visible leading edge (cap midpoint) to the target gap.
-    const startX = Math.max(
-      safeOriginX,
-      peopleRightEdge + startGap - halfCircleRadius,
-    );
-    const rightPadding = Math.max(4, circleRadius);
-    const minTipX = startX + halfCircleRadius;
-    const maxTipX = Math.min(
-      segmentWidth * 0.5 + safeOriginX,
-      segmentWidth - rightPadding,
-    );
-
-    if (maxTipX <= minTipX) {
-      return { isVisible: false, pathD: "", startX: 0, endTipX: 0 };
-    }
-
-    const normalizedTime =
-      (getTimeValue(data) - TIME_MIN) / Math.max(TIME_MAX - TIME_MIN, 1);
-    if (normalizedTime <= 0) {
-      return { isVisible: false, pathD: "", startX: 0, endTipX: 0 };
-    }
-
-    const endTipX = minTipX + normalizedTime * (maxTipX - minTipX);
-    const endStemX = endTipX - halfCircleRadius;
-
-    if (endStemX <= startX + 0.1) {
-      return { isVisible: false, pathD: "", startX: 0, endTipX: 0 };
-    }
-
-    const pathD = `M ${startX} 0 A ${halfCircleRadius} ${halfCircleRadius} 0 0 1 ${startX} ${segmentHeight} L ${endStemX} ${segmentHeight} A ${halfCircleRadius} ${halfCircleRadius} 0 0 0 ${endStemX} 0 Z`;
-
-    return {
-      isVisible: true,
-      pathD,
-      startX,
-      endTipX,
-    };
+  function nodeStrokeWidth(ppl) {
+    const r = nodeRadius(ppl);
+    const dr = 2,
+      gap = 1;
+    const dotSpacing = dr * 2 + gap;
+    const dotsPerRing = Math.max(1, Math.floor((2 * Math.PI * r) / dotSpacing));
+    const numRings = Math.ceil(ppl / dotsPerRing);
+    return Math.max(6, numRings * dotSpacing + gap * 2);
   }
 </script>
 
-<div id="details" style="height: {innerHeight}px; width: {details_width}px;">
+<div id="details" style="height: 100vh; width: {details_width}px;">
   {#if fullChain.length > 0 && segment_height > 0}
     <div
       class="detail-segment detail-title-segment"
       style="
         height: {segment_height}px;
         width: {details_width}px;
-        --segment-radius: {getDetailSegmentRadius(segment_height)}px;
       "
     >
-      <span class="detail-title-text">Detail Process View</span>
+      <span class="detail-title-text">Detail View</span>
       <button
         class="detail-reset-button"
         type="button"
@@ -548,149 +174,242 @@
 
   <!-- individual segments -->
   {#each fullChain as d, segmentIndex}
-    {@const segmentData = d.data}
-    {@const baseSegmentHeight = getDetailSegmentHeight(segmentData)}
-    {@const segmentWidth = getAlignedSegmentWidth(baseSegmentHeight)}
+    {@const isHalfHeightSegment =
+      segmentIndex >= Math.max(0, fullChain.length - HALF_HEIGHT_SEGMENT_COUNT)}
+    {@const currentSegmentHeight = isHalfHeightSegment
+      ? segment_height / 2
+      : segment_height}
     {@const isExpanded = expandedSegmentIndex === segmentIndex}
     {@const expandsUp = isBottomSegment(segmentIndex, fullChain.length)}
     {@const renderedSegmentHeight = isExpanded
-      ? baseSegmentHeight + SEGMENT_EXPAND_DELTA
-      : baseSegmentHeight}
-    {@const segmentVisualOffsetX = baseSegmentHeight / 2}
-    {@const segmentProcessCircleCenterX = segmentVisualOffsetX - 1}
-    {@const segmentProcessCircleCenterY = baseSegmentHeight / 2 - 1}
-    {@const segmentProcessLabelX = segmentWidth - 5}
-    {@const segmentProcessLabelY = baseSegmentHeight / 2}
-    {@const segmentProcessCircleRadius =
-      getProcessCircleRadius(baseSegmentHeight)}
-    {@const peopleMarkers = getPeopleCircleMarkers(
-      segmentData,
-      segmentVisualOffsetX,
+      ? currentSegmentHeight + SEGMENT_EXPAND_DELTA
+      : currentSegmentHeight}
+    {@const segmentInnerWidth = Math.max(0, details_width - SEGMENT_SVG_PADDING_X * 2)}
+    {@const laneWidth = segmentInnerWidth / SEGMENT_LANE_COUNT}
+    {@const circleCenterX = SEGMENT_SVG_PADDING_X + laneWidth / 2}
+    {@const ppl = d.data.ppl ?? 0}
+    {@const maxCircleHalfHeight = Math.max(
+      0,
+      currentSegmentHeight / 2 - LANE_CONTENT_PADDING,
     )}
-    {@const timePath = getTimePathLayout(
-      segmentData,
-      segmentVisualOffsetX,
-      segmentWidth,
+    {@const maxCircleHalfWidth = Math.max(0, laneWidth / 2 - LANE_CONTENT_PADDING)}
+    {@const scale = circleScale(
+      maxPplInChain,
+      maxCircleHalfHeight,
+      maxCircleHalfWidth,
     )}
-    {@const methodMarkers = getMethodRects(
-      segmentData,
-      timePath,
-      segmentVisualOffsetX,
+    {@const timeValue = numericTimeValue(d.data?.time)}
+    {@const timeRatio = maxTimeInChain > 0 ? Math.min(1, timeValue / maxTimeInChain) : 0}
+    {@const timeLaneX = SEGMENT_SVG_PADDING_X + laneWidth + LANE_CONTENT_PADDING}
+    {@const timeLaneY = LANE_CONTENT_PADDING}
+    {@const timeLaneWidth = Math.max(0, laneWidth - LANE_CONTENT_PADDING * 2)}
+    {@const timeLaneHeight = Math.max(0, currentSegmentHeight - LANE_CONTENT_PADDING * 2)}
+    {@const timeFillWidth = timeLaneWidth * timeRatio}
+    {@const methodsCount = getMethodsCount(d.data?.methods)}
+    {@const methodsLaneX = SEGMENT_SVG_PADDING_X + laneWidth * 2 + LANE_CONTENT_PADDING}
+    {@const methodsLaneY = LANE_CONTENT_PADDING}
+    {@const methodsLaneWidth = Math.max(0, laneWidth - LANE_CONTENT_PADDING * 2)}
+    {@const methodsLaneHeight = Math.max(0, currentSegmentHeight - LANE_CONTENT_PADDING * 2)}
+    {@const methodsRefRows = maxMethodsInChain > 1 ? 2 : 1}
+    {@const methodsRefCols = maxMethodsInChain > 0 ? Math.ceil(maxMethodsInChain / 2) : 1}
+    {@const methodsColGap =
+      methodsRefCols > 1 ? Math.max(1, Math.min(4, methodsLaneWidth * 0.06)) : 0}
+    {@const methodsRowGap =
+      methodsRefRows > 1 ? Math.max(1, Math.min(4, methodsLaneHeight * 0.08)) : 0}
+    {@const methodsAvailableWidth = Math.max(
+      0,
+      methodsLaneWidth - methodsColGap * (methodsRefCols - 1),
     )}
-    {@const errorMarkers = getErrorMarkers(
-      segmentData,
-      methodMarkers,
-      timePath,
-      segmentVisualOffsetX,
+    {@const methodsAvailableHeight = Math.max(
+      0,
+      methodsLaneHeight - methodsRowGap * (methodsRefRows - 1),
     )}
-    {@const methodErrorSeparator = getMethodErrorSeparatorPath(
-      segmentData,
-      methodMarkers,
-      errorMarkers,
+    {@const methodsIconSize = Math.max(
+      0,
+      Math.min(
+        methodsAvailableWidth / methodsRefCols,
+        methodsAvailableHeight / methodsRefRows,
+      ),
     )}
-    {@const errorRightSeparator = getErrorRightSeparatorPath(
-      segmentData,
-      errorMarkers,
+    {@const methodsRowsCurrent = methodsCount > 1 ? 2 : 1}
+    {@const methodsBlockHeight =
+      methodsRowsCurrent * methodsIconSize + (methodsRowsCurrent - 1) * methodsRowGap}
+    {@const methodsStartY = methodsLaneY + Math.max(0, (methodsLaneHeight - methodsBlockHeight) / 2)}
+    {@const errorsCount = getErrorsCount(d.data?.errors)}
+    {@const errorsLaneX = SEGMENT_SVG_PADDING_X + laneWidth * 3 + LANE_CONTENT_PADDING}
+    {@const errorsLaneY = LANE_CONTENT_PADDING}
+    {@const errorsLaneWidth = Math.max(0, laneWidth - LANE_CONTENT_PADDING * 2)}
+    {@const errorsLaneHeight = Math.max(0, currentSegmentHeight - LANE_CONTENT_PADDING * 2)}
+    {@const errorsRefRows = maxErrorsInChain > 1 ? 2 : 1}
+    {@const errorsRefCols = maxErrorsInChain > 0 ? Math.ceil(maxErrorsInChain / 2) : 1}
+    {@const errorsColGap =
+      errorsRefCols > 1 ? Math.max(1, Math.min(4, errorsLaneWidth * 0.06)) : 0}
+    {@const errorsRowGap =
+      errorsRefRows > 1 ? Math.max(1, Math.min(4, errorsLaneHeight * 0.08)) : 0}
+    {@const errorsAvailableWidth = Math.max(
+      0,
+      errorsLaneWidth - errorsColGap * (errorsRefCols - 1),
     )}
-    <a
-      href={d.data.link}
-      target="_blank"
-      class="detail-link"
+    {@const errorsAvailableHeight = Math.max(
+      0,
+      errorsLaneHeight - errorsRowGap * (errorsRefRows - 1),
+    )}
+    {@const errorsIconSize = Math.max(
+      0,
+      Math.min(
+        errorsAvailableWidth / errorsRefCols,
+        errorsAvailableHeight / errorsRefRows,
+      ),
+    )}
+    {@const errorsRowsCurrent = errorsCount > 1 ? 2 : 1}
+    {@const errorsBlockHeight =
+      errorsRowsCurrent * errorsIconSize + (errorsRowsCurrent - 1) * errorsRowGap}
+    {@const errorsStartY = errorsLaneY + Math.max(0, (errorsLaneHeight - errorsBlockHeight) / 2)}
+    {@const textLaneX =
+      SEGMENT_SVG_PADDING_X + laneWidth * (SEGMENT_LANE_COUNT - 1) + LANE_CONTENT_PADDING}
+    {@const textLaneY = LANE_CONTENT_PADDING}
+    {@const textLaneWidth = Math.max(0, laneWidth - LANE_CONTENT_PADDING * 2)}
+    {@const textLaneHeight = Math.max(0, currentSegmentHeight - LANE_CONTENT_PADDING * 2)}
+    {@const textFontSize = Math.max(8, Math.min(12, laneWidth * 0.14))}
+    {@const textLineHeight = textFontSize * 1.2}
+    {@const maxTextLines = Math.max(1, Math.floor(textLaneHeight / textLineHeight))}
+    {@const tooltipLines = wrapWordsToLines(
+      d.data?.tooltip_name,
+      textLaneWidth,
+      textFontSize,
+    ).slice(0, maxTextLines)}
+    {@const textStartY = textLaneY + Math.max(0, (textLaneHeight - tooltipLines.length * textLineHeight) / 2)}
+    {@const r = nodeRadius(ppl) * scale}
+    {@const sw = nodeStrokeWidth(ppl) * scale}
+    {@const dots = getPeopleDots(ppl, scale)}
+    {@const dotRadius = Math.max(0.8, (segment_height <= 40 ? 1.5 : 2) * scale)}
+    <div
+      class="detail-segment"
       on:click={(event) => handleSegmentClick(event, segmentIndex)}
-    >
-      <div
-        class="detail-segment"
-        style="
+      on:keydown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          handleSegmentClick(event, segmentIndex);
+        }
+      }}
+      role="button"
+      tabindex="0"
+      aria-label={`Toggle details for ${d.data?.tooltip_name ?? "segment"}`}
+      aria-expanded={isExpanded}
+      style="
     height: {renderedSegmentHeight}px;
-    width: {segmentWidth}px;
-    margin-left: auto;
+    width: {details_width}px;
     transform: translateY({isExpanded && expandsUp
-          ? -SEGMENT_EXPAND_DELTA
-          : 0}px);
+        ? -SEGMENT_EXPAND_DELTA
+        : 0}px);
     margin-bottom: {isExpanded && expandsUp ? -SEGMENT_EXPAND_DELTA : 0}px;
-    --segment-radius: {getDetailSegmentRadius(baseSegmentHeight)}px;
   "
-      >
-        <div class="segment-svg-shell" style="height: {baseSegmentHeight}px;">
-          <svg class="segment-svg" aria-hidden="true" focusable="false">
+    >
+      <div class="segment-svg-shell" style="height: {currentSegmentHeight}px;">
+        <svg
+          class="segment-svg"
+          aria-hidden="true"
+          focusable="false"
+          style="width: {details_width}px; height: {currentSegmentHeight}px;"
+        >
+          <g transform="translate({circleCenterX}, {currentSegmentHeight / 2})">
             <circle
-              class="segment-process-circle"
-              cx={segmentProcessCircleCenterX}
-              cy={segmentProcessCircleCenterY + 0.2}
-              r={segmentProcessCircleRadius - 2}
-              fill={d.data.name === "PA-X" ||
-              d.data.branch_type === "leaf" ||
-              d.data.type?.slice(-2) === "db" ||
-              d.data.name === "agreement"
-                ? "white"
-                : "#001C23"}
+              cx="0"
+              cy="0"
+              {r}
+              fill={nodeFill(d)}
+              stroke="#CC8500"
+              stroke-width={sw}
             />
-            <text
-              class="segment-process-label"
-              x={segmentProcessLabelX - 5}
-              y={segmentProcessLabelY}
-              font-size={10}
-            >
-              {segmentData?.name}
-            </text>
-            {#each peopleMarkers as marker}
+            {#each dots as dot}
               <circle
-                class="segment-people-circle"
-                cx={marker.cx}
-                cy={marker.cy}
-                r={marker.r}
+                cx={dot.cx}
+                cy={dot.cy}
+                r={dotRadius}
+                fill="black"
+                opacity="0.85"
+                pointer-events="none"
               />
             {/each}
-            {#if timePath.isVisible}
-              <path class="segment-time-shape" d={timePath.pathD}></path>
-            {/if}
-            {#each methodMarkers as methodMarker}
+          </g>
+          <!-- <rect
+            x={timeLaneX}
+            y={timeLaneY}
+            width={timeLaneWidth}
+            height={timeLaneHeight}
+            rx="2"
+            ry="2"
+            fill="rgba(255, 255, 255, 0.1)"
+          /> -->
+          <rect
+            x={timeLaneX}
+            y={timeLaneY}
+            width={timeFillWidth}
+            height={timeLaneHeight}
+            rx="2"
+            ry="2"
+            fill="#CC8500"
+          />
+          {#if methodsCount > 0 && methodsIconSize > 0}
+            {#each Array.from({ length: methodsCount }, (_, methodIndex) => methodIndex) as methodIndex}
+              {@const methodCol = Math.floor(methodIndex / 2)}
+              {@const methodRow = methodIndex % 2}
               <image
-                class="segment-method-cog"
-                href={COG_ICON_HREF}
-                x={methodMarker.x - methodMarker.size / 2}
-                y={methodMarker.y - methodMarker.size / 2}
-                width={methodMarker.size}
-                height={methodMarker.size}
-                preserveAspectRatio="xMidYMid meet"
+                href="/cog.svg"
+                x={methodsLaneX + methodCol * (methodsIconSize + methodsColGap)}
+                y={methodsStartY + methodRow * (methodsIconSize + methodsRowGap)}
+                width={methodsIconSize}
+                height={methodsIconSize}
+                preserveAspectRatio="xMinYMin meet"
               />
             {/each}
-            {#if methodErrorSeparator.isVisible}
-              <path
-                class="segment-method-error-separator"
-                d={methodErrorSeparator.pathD}
-              ></path>
-            {/if}
-            {#each errorMarkers as errorMarker}
+          {/if}
+          {#if errorsCount > 0 && errorsIconSize > 0}
+            {#each Array.from({ length: errorsCount }, (_, errorIndex) => errorIndex) as errorIndex}
+              {@const errorCol = Math.floor(errorIndex / 2)}
+              {@const errorRow = errorIndex % 2}
               <image
-                class="segment-error-icon"
-                href={ERROR_ICON_HREF}
-                x={errorMarker.x - errorMarker.size / 2}
-                y={errorMarker.y - errorMarker.size / 2}
-                width={errorMarker.size}
-                height={errorMarker.size}
-                preserveAspectRatio="xMidYMid meet"
+                href="/erro.svg"
+                x={errorsLaneX + errorCol * (errorsIconSize + errorsColGap)}
+                y={errorsStartY + errorRow * (errorsIconSize + errorsRowGap)}
+                width={errorsIconSize}
+                height={errorsIconSize}
+                preserveAspectRatio="xMinYMin meet"
               />
             {/each}
-            {#if errorRightSeparator.isVisible}
-              <path
-                class="segment-error-right-separator"
-                d={errorRightSeparator.pathD}
-              ></path>
-            {/if}
-          </svg>
-        </div>
-
-        {#if isExpanded}
-          <div
-            class="segment-expanded-content"
-            style="height: {SEGMENT_EXPAND_DELTA}px;"
-          >
-            {segmentData?.segment_text ?? ""}
-          </div>
-        {/if}
+          {/if}
+          {#each tooltipLines as line, lineIndex}
+            <text
+              x={textLaneX + 5}
+              y={textStartY + lineIndex * textLineHeight}
+              fill="rgba(255, 255, 255, 0.92)"
+              font-size={textFontSize}
+              dominant-baseline="hanging"
+            >
+              {line}
+            </text>
+          {/each}
+          {#each Array.from({ length: SEGMENT_LANE_COUNT - 1 }, (_, i) => i + 1) as divider}
+            <line
+              x1={SEGMENT_SVG_PADDING_X + laneWidth * divider}
+              y1="0"
+              x2={SEGMENT_SVG_PADDING_X + laneWidth * divider}
+              y2={currentSegmentHeight}
+              stroke="rgba(255, 255, 255, 0.22)"
+              stroke-width="1"
+              vector-effect="non-scaling-stroke"
+            />
+          {/each}
+        </svg>
       </div>
-    </a>
+      {#if isExpanded}
+        <div
+          class="segment-expanded-content"
+          style="height: {SEGMENT_EXPAND_DELTA}px;"
+        >
+          {d.data?.segment_text ?? ""}
+        </div>
+      {/if}
+    </div>
   {/each}
 </div>
 
@@ -708,6 +427,8 @@
     display: flex;
     flex-direction: column;
     box-sizing: border-box;
+    min-width: 0;
+    max-width: 100%;
     background-color: #001c23;
     border-radius: var(--segment-radius, 10px);
     border: solid 1px rgb(51, 51, 51);
@@ -737,15 +458,11 @@
     padding: 10px 12px;
     box-sizing: border-box;
     border-top: solid 1px rgba(106, 106, 106, 0.5);
+    background-color: #00252e;
     color: rgba(255, 255, 255, 0.92);
     font-size: 12px;
     line-height: 1.35;
     overflow: auto;
-  }
-
-  .detail-link {
-    display: block;
-    text-decoration: none;
   }
 
   .detail-title-segment {
@@ -785,45 +502,6 @@
 
   .detail-reset-button:hover {
     background: rgba(255, 255, 255, 0.16);
-  }
-
-  .segment-process-circle {
-    stroke: #cc8500;
-    stroke-width: 5;
-  }
-
-  .segment-process-label {
-    fill: rgba(255, 255, 255, 0.95);
-    font-weight: 600;
-    text-anchor: end;
-    dominant-baseline: middle;
-  }
-
-  .segment-time-shape {
-    fill: #595959;
-  }
-
-  .segment-people-circle {
-    fill: rgb(255, 255, 255);
-  }
-
-  .segment-method-cog {
-    opacity: 0.95;
-  }
-
-  .segment-method-error-separator {
-    fill: none;
-    stroke: rgba(255, 255, 255, 0.85);
-    stroke-width: 2;
-  }
-  .segment-error-right-separator {
-    fill: none;
-    stroke: #595959;
-    stroke-width: 2;
-  }
-
-  .segment-error-icon {
-    opacity: 0.95;
   }
 
   .detail-segment:hover {

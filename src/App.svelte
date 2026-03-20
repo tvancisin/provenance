@@ -1,7 +1,5 @@
 <script>
   import * as d3 from "d3";
-  import { cubicOut } from "svelte/easing";
-  import { tweened } from "svelte/motion";
   import BackgroundTree from "./lib/BackgroundTree.svelte";
   import ForegroundTree from "./lib/ForegroundTree.svelte";
   import Legend from "./lib/Legend.svelte";
@@ -14,7 +12,10 @@
     setUniformY,
   } from "./utils";
 
-  const margin = { top: 20, right: 100, bottom: 20, left: 100 };
+  let margin = { top: 20, right: 100, bottom: 20, left: 100 };
+  // half margin when node clicked
+  $: margin = { top: 20, right: clicked ? 50 : 100, bottom: 20, left: 100 };
+
   const STEP_BY_LEVEL = new Map([
     ["-1:0", 0],
     ["-1:1", 1],
@@ -40,12 +41,10 @@
   const DETAIL_TITLE_SEGMENTS = 1;
   const INITIAL_LEVEL = -1;
   const DOWN_TO_UP_TRIGGER_LEVEL = 2;
-  const TREE_WIDTH_TRANSITION_MS = 450;
 
   let wrapperElement;
   let width;
   let height;
-  let details_width = 1;
   let clicked = null;
   let removedAgreements;
   let nodesUp = [];
@@ -55,44 +54,17 @@
   let ucdpNodes = [];
   let hasStartedExploring = false;
   let innerWidth = 0;
-  let previousInnerWidthTarget;
-
-  const animatedInnerWidth = tweened(0);
+  let details_width = 1;
 
   $: innerHeight = height - margin.top - margin.bottom;
+  // recalculate width when node is clicked
+  $: innerWidth = clicked
+    ? (width - margin.left - margin.right) * 0.6
+    : width - margin.left - margin.right;
+  $: details_width = clicked ? (Number(width) || 0) * 0.4 : 1;
   $: yCenter = innerHeight * 0.85;
   $: upHeight = yCenter;
   $: downHeight = innerHeight - upHeight;
-
-  function getTreeWidthTarget(showDetails = false) {
-    const safeWidth = Number(width) || 0;
-
-    if (safeWidth <= 0) return 0;
-
-    return showDetails
-      ? Math.max(safeWidth / 2 - margin.right, 0)
-      : Math.max(safeWidth - margin.right - margin.left, 0);
-  }
-
-  function getDetailsWidthTarget(showDetails = false) {
-    return showDetails ? getTreeWidthTarget(true) : 1;
-  }
-
-  $: if (width !== undefined) {
-    const nextInnerWidthTarget = getTreeWidthTarget(Boolean(clicked));
-
-    if (nextInnerWidthTarget !== previousInnerWidthTarget) {
-      animatedInnerWidth.set(nextInnerWidthTarget, {
-        duration:
-          previousInnerWidthTarget === undefined ? 0 : TREE_WIDTH_TRANSITION_MS,
-        easing: cubicOut,
-      });
-      previousInnerWidthTarget = nextInnerWidthTarget;
-    }
-  }
-
-  $: innerWidth = $animatedInnerWidth;
-  $: details_width = getDetailsWidthTarget(Boolean(clicked));
 
   let rootUp = d3.hierarchy(data, (d) => d.children);
   let rootDown = d3.hierarchy(
@@ -337,7 +309,7 @@
       }
 
       setHoveredNodePosition(e.event);
-      hoveredNodeName = node.data?.name ?? "";
+      hoveredNodeName = node.data?.tooltip_name ?? "";
 
       const links = new Set();
 
@@ -362,14 +334,6 @@
 
   //////////////////////////////// node click
   let fullChain = [];
-
-  function getDetailSegmentWeight(node) {
-    const name = node?.data?.name;
-    return name === "agreement" || name === "negotiation" || name === "conflict"
-      ? 0.5
-      : 1;
-  }
-
   function handleClickEvents(e) {
     d3.selectAll(".ind_line").style("opacity", 0);
     hoveredNodeName = "";
@@ -393,6 +357,7 @@
 
     fullChain = fullChain.concat(downCurrentChain);
   }
+
   $: if (fullChain.length > 0) {
     const availableHeight = Math.max(height ?? 0, 0);
     const baselineUnits = DETAIL_BASELINE_SEGMENTS + DETAIL_TITLE_SEGMENTS;
@@ -539,8 +504,6 @@
       ? (steps.workflow[currentStepIndex]?.description ?? "")
       : "";
   $: showStepDescription = Boolean(currentStepDescription) && !clicked;
-
-  // $: console.log(currentLevelUp);
 </script>
 
 <div
@@ -549,6 +512,7 @@
   bind:clientWidth={width}
   bind:clientHeight={height}
 >
+  <!-- intro screen -->
   {#if !hasStartedExploring}
     <div class="intro-overlay">
       <div class="intro-card">
@@ -598,49 +562,8 @@
       </div>
     </div>
   {/if}
-  <!-- {#if !clicked}
-    <h1>PA-X Provenance</h1>
-  {/if} -->
-  {#if showStepDescription}
-    <div id="step_description">
-      <div class="controls">
-        <button
-          id="back"
-          type="button"
-          on:click={previousStepHandler}
-          disabled={isAtWorkflowStart}
-          aria-label="Previous step"
-          title="Previous step"
-        >
-          <i class="fa fa-arrow-left" aria-hidden="true"></i>
-        </button>
-        <button
-          id="next"
-          type="button"
-          on:click={nextStepHandler}
-          disabled={isAtWorkflowEnd}
-          aria-label="Next step"
-          title="Next step"
-        >
-          <i class="fa fa-arrow-right" aria-hidden="true"></i>
-        </button>
-        <button
-          id="reveal-all"
-          type="button"
-          on:click={revealAllHandler}
-          disabled={isAtWorkflowEnd}
-          aria-label="Reveal all"
-          title="Reveal all"
-        >
-          <i class="fa fa-star" aria-hidden="true"></i>
-        </button>
-      </div>
-      <div id="step_description_text">
-        {@html currentStepDescription}
-      </div>
-    </div>
-  {/if}
 
+  <!-- tooltip for node hover -->
   {#if hoveredNodeName && !clicked}
     <div
       class="node-hover-tooltip"
@@ -650,9 +573,9 @@
     </div>
   {/if}
 
-  <div class="tree">
+  <div class="tree" style={`width: ${clicked ? width * 0.6 : width}px;`}>
     {#if width !== undefined || height !== undefined}
-      <svg {width} {height}>
+      <svg width={clicked ? width * 0.6 : width} {height}>
         <g transform={`translate(${margin.right}, ${margin.top})`}>
           <BackgroundTree
             {currentLevelUp}
@@ -678,15 +601,53 @@
             {rootUp}
           />
         </g>
-        <!-- <Legend {currentLevelDown} /> -->
+        <Legend {currentLevelDown} />
       </svg>
+    {/if}
+    {#if showStepDescription}
+      <div id="step_description">
+        <div class="controls">
+          <button
+            id="back"
+            type="button"
+            on:click={previousStepHandler}
+            disabled={isAtWorkflowStart}
+            aria-label="Previous step"
+            title="Previous step"
+          >
+            <i class="fa fa-arrow-left" aria-hidden="true"></i>
+          </button>
+          <button
+            id="next"
+            type="button"
+            on:click={nextStepHandler}
+            disabled={isAtWorkflowEnd}
+            aria-label="Next step"
+            title="Next step"
+          >
+            <i class="fa fa-arrow-right" aria-hidden="true"></i>
+          </button>
+          <button
+            id="reveal-all"
+            type="button"
+            on:click={revealAllHandler}
+            disabled={isAtWorkflowEnd}
+            aria-label="Reveal all"
+            title="Reveal all"
+          >
+            <i class="fa fa-star" aria-hidden="true"></i>
+          </button>
+        </div>
+        <div id="step_description_text">
+          {@html currentStepDescription}
+        </div>
+      </div>
     {/if}
   </div>
   <Details
     {fullChain}
     {details_width}
     {segment_height}
-    innerHeight={height}
     onReset={reset}
   />
 </div>
@@ -765,7 +726,6 @@
   }
 
   .tree {
-    width: 70%;
     height: 100vh;
   }
 

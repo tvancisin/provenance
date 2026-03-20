@@ -54,13 +54,28 @@
   }
 
   // highlighting logic
-  const defaultStroke = "#00a3cc";
+  const defaultStroke = "#8c8c8c";
   const mutedStroke = "#005266";
   const highlightedStroke = "#cc8500";
+  const upwardLinkStrokeByBranchType = {
+    trunk: "#007a99",
+    upper_trunk: "#007a99",
+    uppest_trunk: "#1ad1ff",
+    default: "#1ad1ff",
+  };
+  const upwardBackgroundStrokeByBranchType = {
+    trunk: "#003d4d",
+    upper_trunk: "#003d4d",
+    uppest_trunk: "#005266",
+    default: "#005266",
+  };
+
+  let hoveredNodeIds = new Set();
 
   $: nonHighlightedPathStroke = clicked ? mutedStroke : defaultStroke;
-
   $: highlightedNodeIds = new Set();
+  $: isResearchDeemphasized = currentLevelUp >= 9;
+  $: if (clicked) hoveredNodeIds = new Set();
   $: {
     highlightedNodeIds = new Set();
     for (const linkId of highlightedLinks ?? []) {
@@ -70,10 +85,59 @@
     }
   }
 
-  function nodeStroke(node, isClicked, ids) {
+  function downwardNodeStroke(node, isClicked, ids) {
     const isHighlighted = ids.has(String(node.data.id));
     if (!isClicked) return isHighlighted ? highlightedStroke : defaultStroke;
     return isHighlighted ? highlightedStroke : mutedStroke;
+  }
+
+  function upwardNodeStroke(node, ids, hoveredIds, isClicked) {
+    const nodeId = String(node.data.id);
+    if (!isClicked && hoveredIds.has(nodeId)) return highlightedStroke;
+
+    const isHighlighted = ids.has(nodeId);
+    if (isHighlighted) return highlightedStroke;
+
+    if (isClicked) {
+      if (node.data.name === "Research" || node.data.name === "paper") {
+        return "#800000";
+      }
+
+      return (
+        upwardBackgroundStrokeByBranchType[node.data.branch_type] ??
+        upwardBackgroundStrokeByBranchType.default
+      );
+    }
+
+    if (node.data.name === "Research" || node.data.name === "paper") {
+      return "#973535";
+    }
+
+    return (
+      upwardLinkStrokeByBranchType[node.data.branch_type] ??
+      upwardLinkStrokeByBranchType.default
+    );
+  }
+
+  function getUpwardLinkStroke(link, isClicked) {
+    if (isClicked) {
+      if (link.data.name === "Research" || link.data.name === "paper") {
+        return isResearchDeemphasized ? "#973535" : "#5e2121";
+      }
+
+      return (
+        upwardBackgroundStrokeByBranchType[link.data.branch_type] ??
+        upwardBackgroundStrokeByBranchType.default
+      );
+    }
+
+    if (link.data.name === "Research") return "";
+    if (link.data.name === "paper") return "#973535";
+
+    return (
+      upwardLinkStrokeByBranchType[link.data.branch_type] ??
+      upwardLinkStrokeByBranchType.default
+    );
   }
 
   let visibleLinksDown = [];
@@ -287,7 +351,7 @@
       cy="0"
       r="3"
       fill={d.data.name === "agreement" ? "white" : "#001C23"}
-      stroke={nodeStroke(d, clicked, highlightedNodeIds)}
+      stroke={downwardNodeStroke(d, clicked, highlightedNodeIds)}
       stroke-width="2"
     />
   </g>
@@ -392,9 +456,7 @@
     stroke-linecap="round"
     stroke={highlightedLinks.has(`${d.parent.data.id}→${d.data.id}`)
       ? highlightedStroke
-      : d.data.name === "Research"
-        ? ""
-        : nonHighlightedPathStroke}
+      : getUpwardLinkStroke(d, clicked)}
     stroke-width={d.data.branch_type === "trunk"
       ? 17
       : d.data.branch_type === "upper_trunk"
@@ -492,13 +554,23 @@
       d.data.type?.slice(-2) === "db"
         ? "white"
         : "#001C23"}
-      stroke={nodeStroke(d, clicked, highlightedNodeIds)}
+      stroke={upwardNodeStroke(d, highlightedNodeIds, hoveredNodeIds, clicked)}
       stroke-width={sw}
       tabindex="0"
       role="button"
       aria-label="Node details"
-      on:mouseenter={(event) => handleHoverEvent({ node: d, event })}
-      on:mouseleave={(event) => handleHoverEvent({ node: null, event })}
+      on:mouseenter={(event) => {
+        const ids = new Set([String(d.data.id)]);
+        if (d.data.name === "paper" && d.parent?.data?.name === "Research") {
+          ids.add(String(d.parent.data.id));
+        }
+        hoveredNodeIds = ids;
+        handleHoverEvent({ node: d, event });
+      }}
+      on:mouseleave={(event) => {
+        hoveredNodeIds = new Set();
+        handleHoverEvent({ node: null, event });
+      }}
       on:click={() => handleClickEvents({ node: d })}
       on:keydown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
@@ -507,6 +579,7 @@
       }}
     />
 
+    <!-- people nodes around inner circle -->
     {#each dots as dot}
       <circle
         cx={dot.cx}

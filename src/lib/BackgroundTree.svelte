@@ -27,8 +27,19 @@
   $: ucdpLinkStroke = clicked
     ? "#404040"
     : isUcdpDeemphasized
-      ? "#bfbfbf"
+      ? "#404040"
       : "#404040";
+
+  const upwardStrokeByBranchType = {
+    trunk: "#003d4d",
+    upper_trunk: "#003d4d",
+    uppest_trunk: "#005266",
+    default: "#005266",
+  };
+
+  function getUpwardBranchStroke(branchType) {
+    return upwardStrokeByBranchType[branchType] ?? upwardStrokeByBranchType.default;
+  }
 
   $: x1 = globeNode ? globeNode.x + 4 : 0;
   $: y1 = globeNode ? yCenter - globeNode.y : 0;
@@ -79,11 +90,12 @@
   }
 </script>
 
+<!-- research links -->
 {#if researchNode && subdatabaseNode1 && subdatabaseNode2}
   <path
     fill="none"
     class="sub_db_research"
-    stroke={isResearchDeemphasized ? "white" : "gray"}
+    stroke={isResearchDeemphasized ? "#973535" : "#5e2121"}
     stroke-width="5"
     stroke-dasharray="10 5"
     d={createBezier(researchNode, subdatabaseNode2, subdatabaseNode1)}
@@ -92,13 +104,35 @@
 {#if researchNode && visFem && visInfographics}
   <path
     fill="none"
-    stroke={isSubVisDeemphasized ? "white" : "gray"}
+    stroke={isSubVisDeemphasized ? "#973535" : "#5e2121"}
     class="sub_vis_research"
     stroke-width="5"
     stroke-dasharray="10 5"
     d={createBezierUp(researchNode, visFem, visInfographics)}
   />
 {/if}
+
+{#each linksUp as d}
+  <path
+    d={getUpwardLinkPath(d, yCenter)}
+    fill="none"
+    stroke-linecap={d.data.name === "Research" ? "butt" : "round"}
+    stroke={d.data.name === "Research" || d.data.name === "paper"
+      ? isResearchDeemphasized
+        ? "#973535"
+        : "#5e2121"
+      : getUpwardBranchStroke(d.data.branch_type)}
+    stroke-dasharray={d.data.name === "Research" ? "10 5" : null}
+    class={d.data.name === "Research" ? "research_link" : ""}
+    stroke-width={d.data.branch_type === "trunk"
+      ? 15
+      : d.data.branch_type === "upper_trunk"
+        ? 15
+        : d.data.branch_type === "uppest_trunk"
+          ? 5
+          : 2}
+  />
+{/each}
 
 <!-- ucdp nodes and links -->
 <path
@@ -173,28 +207,6 @@
   </g>
 {/each}
 
-{#each linksUp as d}
-  <path
-    d={getUpwardLinkPath(d, yCenter)}
-    fill="none"
-    stroke-linecap={d.data.name === "Research" ? "butt" : "round"}
-    stroke={d.data.name === "Research"
-      ? isResearchDeemphasized
-        ? "white"
-        : "gray"
-      : "#005266"}
-    stroke-dasharray={d.data.name === "Research" ? "10 5" : null}
-    class={d.data.name === "Research" ? "research_link" : ""}
-    stroke-width={d.data.branch_type === "trunk"
-      ? 15
-      : d.data.branch_type === "upper_trunk"
-        ? 15
-        : d.data.branch_type === "uppest_trunk"
-          ? 5
-          : 2}
-  />
-{/each}
-
 {#each linksDown as d}
   <path
     d={`M${d.x},${yCenter + d.y} 
@@ -202,9 +214,21 @@
         ${d.parent.x},${yCenter + d.parent.y + 20} 
         ${d.parent.x},${yCenter + d.parent.y}`}
     fill="none"
-    stroke="#005266"
+    stroke="#404040"
     stroke-width="2"
   />
+{/each}
+{#each nodesDown as d, i}
+  <g transform={`translate(${d.x}, ${yCenter + d.y})`}>
+    <circle
+      cx="0"
+      cy="0"
+      r="3"
+      fill={d.data.name === "agreement" ? "white" : "#001C23"}
+      stroke="#005266"
+      stroke-width="2"
+    />
+  </g>
 {/each}
 {#each nodesUp as d}
   <g transform={`translate(${d.x}, ${yCenter - d.y})`}>
@@ -217,20 +241,10 @@
       d.data.type?.slice(-2) === "db"
         ? "white"
         : "#001C23"}
-      stroke="#005266"
+      stroke={d.data.name == "Research" || d.data.name == "paper"
+        ? "#800000"
+        : getUpwardBranchStroke(d.data.branch_type)}
       stroke-width="4"
-    />
-  </g>
-{/each}
-{#each nodesDown as d, i}
-  <g transform={`translate(${d.x}, ${yCenter + d.y})`}>
-    <circle
-      cx="0"
-      cy="0"
-      r="3"
-      fill={d.data.name === "agreement" ? "white" : "#001C23"}
-      stroke="#005266"
-      stroke-width="2"
     />
   </g>
 {/each}

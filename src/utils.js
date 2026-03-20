@@ -2,6 +2,7 @@ import * as d3 from "d3";
 
 let original_data = {
   name: "Collect",
+  tooltip_name: "Peace Agreement Collection",
   step: 0,
   branch_type: "trunk",
   ppl: 2,
@@ -14,6 +15,7 @@ let original_data = {
   children: [
     {
       name: "Translate",
+      tooltip_name: "Agreement Translation",
       step: 1,
       branch_type: "trunk",
       ppl: 25,
@@ -25,6 +27,7 @@ let original_data = {
       children: [
         {
           name: "Transcribe",
+          tooltip_name: "Agreement Transcription",
           step: 2,
           branch_type: "trunk",
           ppl: 2,
@@ -36,6 +39,7 @@ let original_data = {
           children: [
             {
               name: "Code",
+              tooltip_name: "Thematic Coding",
               step: 3,
               branch_type: "trunk",
               ppl: 40,
@@ -48,6 +52,7 @@ let original_data = {
               children: [
                 {
                   name: "Quality Control",
+                  tooltip_name: "PA-X Quality Control",
                   step: 4,
                   branch_type: "trunk",
                   ppl: 7,
@@ -59,6 +64,7 @@ let original_data = {
                   children: [
                     {
                       name: "PA-X",
+                      tooltip_name: "PA-X Database",
                       step: 5,
                       branch_type: "trunk",
                       ppl: 3,
@@ -71,6 +77,7 @@ let original_data = {
                       children: [
                         {
                           name: "Research",
+                          tooltip_name: "Research",
                           step: 9,
                           branch_type: "uppest_trunk",
                           ppl: 50,
@@ -82,9 +89,10 @@ let original_data = {
                           children: [
                             {
                               name: "paper",
+                              tooltip_name: "Academic Papers",
                               step: 10,
                               branch_type: "leaf",
-                              ppl: 10,
+                              ppl: 5,
                               expertise: 5,
                               errors: 3,
                               methods: ["quantitative", "qualitative", "mixed"],
@@ -93,9 +101,10 @@ let original_data = {
                             },
                             {
                               name: "paper",
+                              tooltip_name: "Books",
                               step: 10,
                               branch_type: "leaf",
-                              ppl: 1,
+                              ppl: 8,
                               expertise: 5,
                               errors: 3,
                               methods: ["quantitative", "qualitative", "mixed"],
@@ -104,6 +113,7 @@ let original_data = {
                             },
                             {
                               name: "paper",
+                              tooltip_name: "Journal Articles",
                               step: 10,
                               branch_type: "leaf",
                               ppl: 10,
@@ -115,6 +125,7 @@ let original_data = {
                             },
                             {
                               name: "paper",
+                              tooltip_name: "Blogs",
                               step: 10,
                               branch_type: "leaf",
                               ppl: 10,
@@ -126,9 +137,10 @@ let original_data = {
                             },
                             {
                               name: "paper",
+                              tooltip_name: "Conference Publications",
                               step: 10,
                               branch_type: "leaf",
-                              ppl: 10,
+                              ppl: 3,
                               expertise: 5,
                               errors: 3,
                               methods: ["quantitative", "qualitative", "mixed"],
@@ -139,6 +151,7 @@ let original_data = {
                         },
                         {
                           name: "Code",
+                          tooltip_name: "PA-X Gender Thematic Coding",
                           step: 6,
                           branch_type: "upper_trunk",
                           ppl: 13,
@@ -151,6 +164,7 @@ let original_data = {
                           children: [
                             {
                               name: "Quality Control",
+                              tooltip_name: "PA-X Gender Quality Control",
                               step: 7,
                               branch_type: "upper_trunk",
                               ppl: 7,
@@ -162,6 +176,7 @@ let original_data = {
                               children: [
                                 {
                                   name: "PA-X Gender",
+                                  tooltip_name: "PA-X Gender Database",
                                   step: 8,
                                   branch_type: "upper_trunk",
                                   ppl: 3,
@@ -174,6 +189,7 @@ let original_data = {
                                   children: [
                                     {
                                       name: "App Development",
+                                      tooltip_name: "PeaceFem App Development",
                                       step: 11,
                                       branch_type: "uppest_trunk",
                                       ppl: 4,
@@ -185,9 +201,10 @@ let original_data = {
                                       children: [
                                         {
                                           name: "PeaceFem",
+                                          tooltip_name: "PeaceFem App",
                                           step: 12,
                                           branch_type: "leaf",
-                                          ppl: 4,
+                                          ppl: 1,
                                           expertise: 2,
                                           errors: 4,
                                           methods: ["kotlin", "swift"],
@@ -199,6 +216,7 @@ let original_data = {
                                     },
                                     {
                                       name: "d3",
+                                      tooltip_name: "PA-X Gender Visualization Development",
                                       step: 11,
                                       branch_type: "uppest_trunk",
                                       ppl: 1,
@@ -211,10 +229,11 @@ let original_data = {
                                       children: [
                                         {
                                           name: "Scrollytelling",
+                                          tooltip_name: "PA-X Gender Scrollytelling",
                                           step: 12,
                                           branch_type: "leaf",
-                                          ppl: 4,
-                                          expertise: 3,
+                                          ppl: 2,
+                                          expertise: 1,
                                           errors: 5,
                                           methods: ["d3", "svelte", "git"],
                                           time: 10,
@@ -231,6 +250,7 @@ let original_data = {
                         },
                         {
                           name: "Code",
+                          tooltip_name: "PA-X Children & Youth Thematic Coding",
                           step: 6,
                           branch_type: "upper_trunk",
                           ppl: 2,
@@ -242,6 +262,7 @@ let original_data = {
                           children: [
                             {
                               name: "Quality Control",
+                              tooltip_name: "PA-X Children & Youth Quality Control",
                               step: 7,
                               branch_type: "upper_trunk",
                               ppl: 7,
@@ -253,6 +274,7 @@ let original_data = {
                               children: [
                                 {
                                   name: "Children & Youth",
+                                  tooltip_name: "PA-X Children & Youth Database",
                                   step: 8,
                                   branch_type: "upper_trunk",
                                   ppl: 3,
@@ -264,6 +286,7 @@ let original_data = {
                                   children: [
                                     {
                                       name: "PBi Youth Development",
+                                      tooltip_name: "PA-X Children & Youth Visualization Development",
                                       step: 11,
                                       branch_type: "uppest_trunk",
                                       ppl: 1,
@@ -274,6 +297,7 @@ let original_data = {
                                       type: "prog",
                                       children: [{
                                         name: "PBi Youth",
+                                        tooltip_name: "PA-X Children & Youth Visualization",
                                         step: 12,
                                         branch_type: "leaf",
                                         ppl: 1,
@@ -292,6 +316,7 @@ let original_data = {
                         },
                         {
                           name: "Code",
+                          tooltip_name: "PA-X Local Thematic Coding",
                           step: 6,
                           branch_type: "upper_trunk",
                           ppl: 10,
@@ -303,6 +328,7 @@ let original_data = {
                           children: [
                             {
                               name: "Quality Control",
+                              tooltip_name: "PA-X Local Quality Control",
                               step: 7,
                               branch_type: "upper_trunk",
                               ppl: 7,
@@ -311,6 +337,7 @@ let original_data = {
                               children: [
                                 {
                                   name: "PA-X Local",
+                                  tooltip_name: "PA-X Local Database",
                                   step: 8,
                                   branch_type: "upper_trunk",
                                   ppl: 3,
@@ -319,6 +346,7 @@ let original_data = {
                                   children: [
                                     {
                                       name: "d3 local",
+                                      tooltip_name: "PA-X Local Visualization Development",
                                       step: 11,
                                       branch_type: "uppest_trunk",
                                       ppl: 1,
@@ -327,6 +355,7 @@ let original_data = {
                                       children: [
                                         {
                                           name: "Map",
+                                          tooltip_name: "PA-X Local Map Visualization",
                                           step: 12,
                                           branch_type: "leaf",
                                           ppl: 1,
@@ -344,6 +373,7 @@ let original_data = {
                         },
                         {
                           name: "Code",
+                          tooltip_name: "PAA-X Thematic Coding",
                           step: 6,
                           branch_type: "upper_trunk",
                           ppl: 2,
@@ -352,6 +382,7 @@ let original_data = {
                           children: [
                             {
                               name: "Quality Control",
+                              tooltip_name: "PAA-X Quality Control",
                               step: 7,
                               branch_type: "upper_trunk",
                               ppl: 2,
@@ -360,6 +391,7 @@ let original_data = {
                               children: [
                                 {
                                   name: "PAA-X",
+                                  tooltip_name: "PAA-X Database",
                                   step: 8,
                                   branch_type: "upper_trunk",
                                   ppl: 1,
@@ -368,6 +400,7 @@ let original_data = {
                                   children: [
                                     {
                                       name: "VUE",
+                                      tooltip_name: "PAA-X Visualization Development",
                                       step: 11,
                                       branch_type: "uppest_trunk",
                                       ppl: 1,
@@ -376,6 +409,7 @@ let original_data = {
                                       children: [
                                         {
                                           name: "Actors-Network",
+                                          tooltip_name: "PAA-X Actors-Network Visualization",
                                           step: 12,
                                           branch_type: "leaf",
                                           ppl: 1,
@@ -387,6 +421,7 @@ let original_data = {
                                     },
                                     {
                                       name: "d3",
+                                      tooltip_name: "PAA-X Visualization Development",
                                       step: 11,
                                       branch_type: "uppest_trunk",
                                       ppl: 1,
@@ -395,6 +430,7 @@ let original_data = {
                                       children: [
                                         {
                                           name: "3rd Party Scroll",
+                                          tooltip_name: "PAA-X 3rd Party Scroll Visualization",
                                           step: 12,
                                           branch_type: "leaf",
                                           ppl: 3,
@@ -406,6 +442,7 @@ let original_data = {
                                     },
                                     {
                                       name: "Python",
+                                      tooltip_name: "PAA-X Visualization Development",
                                       step: 11,
                                       branch_type: "uppest_trunk",
                                       ppl: 1,
@@ -414,6 +451,7 @@ let original_data = {
                                       children: [
                                         {
                                           name: "Network",
+                                          tooltip_name: "PAA-X Network Visualization",
                                           step: 12,
                                           branch_type: "leaf",
                                           ppl: 1,
@@ -424,6 +462,7 @@ let original_data = {
                                     },
                                     {
                                       name: "Tracker Development",
+                                      tooltip_name: "PAA-X Tracker Development",
                                       step: 11,
                                       branch_type: "uppest_trunk",
                                       ppl: 1,
@@ -432,6 +471,7 @@ let original_data = {
                                       children: [
                                         {
                                           name: "Tracker",
+                                          tooltip_name: "PAA-X Tracker Visualization",
                                           step: 12,
                                           branch_type: "leaf",
                                           ppl: 3,
@@ -450,6 +490,7 @@ let original_data = {
 
                         {
                           name: "d3",
+                          tooltip_name: "Messy Timeline Visualization Development",
                           step: 13,
                           branch_type: "uppest_trunk",
                           ppl: 3,
@@ -458,6 +499,7 @@ let original_data = {
                           children: [
                             {
                               name: "Messy Timeline",
+                              tooltip_name: "Messy Timeline Visualization",
                               step: 14,
                               branch_type: "leaf",
                               ppl: 3,
@@ -469,6 +511,7 @@ let original_data = {
                         },
                         {
                           name: "d3",
+                          tooltip_name: "Time & Space Visualization Development",
                           step: 13,
                           branch_type: "uppest_trunk",
                           ppl: 5,
@@ -477,6 +520,7 @@ let original_data = {
                           children: [
                             {
                               name: "Time & Space",
+                              tooltip_name: "Time & Space Visualization",
                               step: 14,
                               branch_type: "leaf",
                               ppl: 5,
@@ -488,6 +532,7 @@ let original_data = {
                         },
                         {
                           name: "d3",
+                          tooltip_name: "Sequence Comparison Visualization Development",
                           step: 13,
                           branch_type: "uppest_trunk",
                           ppl: 1,
@@ -496,6 +541,7 @@ let original_data = {
                           children: [
                             {
                               name: "Sequence Comparison",
+                              tooltip_name: "Sequence Comparison Visualization",
                               step: 14,
                               branch_type: "leaf",
                               ppl: 1,
@@ -507,6 +553,7 @@ let original_data = {
                         },
                         {
                           name: "d3",
+                          tooltip_name: "Data Overview Visualization Development",
                           step: 13,
                           branch_type: "uppest_trunk",
                           ppl: 2,
@@ -515,6 +562,7 @@ let original_data = {
                           children: [
                             {
                               name: "Data Overview",
+                              tooltip_name: "Data Overview Visualization",
                               step: 14,
                               branch_type: "leaf",
                               ppl: 2,
@@ -526,6 +574,7 @@ let original_data = {
                         },
                         {
                           name: "Infographics",
+                          tooltip_name: "Infographics",
                           step: 15,
                           branch_type: "leaf",
                           ppl: 3,
@@ -962,4 +1011,5 @@ export function setUniformY(node, spacing) {
     setUniformY(child, spacing); // recurse
   });
 }
+
 
