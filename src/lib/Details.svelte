@@ -9,7 +9,7 @@
   // how much segment expands on click
   const SEGMENT_EXPAND_DELTA = 100;
   // one lane each: process, time, expertise, methods, errors, text
-  const SEGMENT_LANE_COUNT = 5;
+  const SEGMENT_LANE_COUNT = 6;
   const SEGMENT_SVG_PADDING_X = 8;
   const LANE_CONTENT_PADDING = 2;
   let expandedSegmentIndex = null;
@@ -47,6 +47,11 @@
     return Math.max(max, count);
   }, 1);
 
+  $: maxExpertiseInChain = fullChain.reduce((max, node) => {
+    const count = getExpertiseCount(node?.data?.expertise);
+    return Math.max(max, count);
+  }, 1);
+
   $: maxErrorsInChain = fullChain.reduce((max, node) => {
     const count = getErrorsCount(node?.data?.errors);
     return Math.max(max, count);
@@ -73,7 +78,10 @@
       const angle = posInRing * ((2 * Math.PI) / dotsPerRing) - Math.PI / 2;
       const ringOffset = (ring - (numRings - 1) / 2) * dotSpacing;
       const ringR = r + ringOffset;
-      return { cx: ringR * Math.cos(angle) * scale, cy: ringR * Math.sin(angle) * scale };
+      return {
+        cx: ringR * Math.cos(angle) * scale,
+        cy: ringR * Math.sin(angle) * scale,
+      };
     });
   }
 
@@ -100,7 +108,9 @@
     if (typeof value === "number" && Number.isFinite(value)) {
       return Math.max(0, value);
     }
-    const parsed = Number.parseFloat(String(value ?? "").replace(/[^0-9.-]/g, ""));
+    const parsed = Number.parseFloat(
+      String(value ?? "").replace(/[^0-9.-]/g, ""),
+    );
     return Number.isFinite(parsed) ? Math.max(0, parsed) : 0;
   }
 
@@ -122,7 +132,10 @@
 
     const words = value.split(/\s+/);
     const approxCharWidth = fontSizePx * 0.58;
-    const maxCharsPerLine = Math.max(1, Math.floor(maxWidthPx / approxCharWidth));
+    const maxCharsPerLine = Math.max(
+      1,
+      Math.floor(maxWidthPx / approxCharWidth),
+    );
 
     const lines = [];
     let currentLine = "";
@@ -150,6 +163,13 @@
     const numRings = Math.ceil(ppl / dotsPerRing);
     return Math.max(6, numRings * dotSpacing + gap * 2);
   }
+
+  // expertise count logic
+  function getExpertiseCount(value) {
+    if (Array.isArray(value)) return value.length;
+    const count = Number(value);
+    return Number.isFinite(count) ? Math.max(0, Math.floor(count)) : 0;
+  }
 </script>
 
 <div id="details" style="height: 100vh; width: {details_width}px;">
@@ -174,6 +194,7 @@
 
   <!-- individual segments -->
   {#each fullChain as d, segmentIndex}
+    <!-- process/artifact cell -->
     {@const isHalfHeightSegment =
       segmentIndex >= Math.max(0, fullChain.length - HALF_HEIGHT_SEGMENT_COUNT)}
     {@const currentSegmentHeight = isHalfHeightSegment
@@ -184,7 +205,10 @@
     {@const renderedSegmentHeight = isExpanded
       ? currentSegmentHeight + SEGMENT_EXPAND_DELTA
       : currentSegmentHeight}
-    {@const segmentInnerWidth = Math.max(0, details_width - SEGMENT_SVG_PADDING_X * 2)}
+    {@const segmentInnerWidth = Math.max(
+      0,
+      details_width - SEGMENT_SVG_PADDING_X * 2,
+    )}
     {@const laneWidth = segmentInnerWidth / SEGMENT_LANE_COUNT}
     {@const circleCenterX = SEGMENT_SVG_PADDING_X + laneWidth / 2}
     {@const ppl = d.data.ppl ?? 0}
@@ -192,30 +216,100 @@
       0,
       currentSegmentHeight / 2 - LANE_CONTENT_PADDING,
     )}
-    {@const maxCircleHalfWidth = Math.max(0, laneWidth / 2 - LANE_CONTENT_PADDING)}
+    {@const maxCircleHalfWidth = Math.max(
+      0,
+      laneWidth / 2 - LANE_CONTENT_PADDING,
+    )}
     {@const scale = circleScale(
       maxPplInChain,
       maxCircleHalfHeight,
       maxCircleHalfWidth,
     )}
+
+    <!-- expertise cell -->
+    {@const expertiseCount = getExpertiseCount(d.data?.expertise)}
+    {@const expertiseLaneX =
+      SEGMENT_SVG_PADDING_X + laneWidth + LANE_CONTENT_PADDING}
+    {@const expertiseLaneY = LANE_CONTENT_PADDING}
+    {@const expertiseLaneWidth = Math.max(
+      0,
+      laneWidth - LANE_CONTENT_PADDING * 2,
+    )}
+    {@const expertiseLaneHeight = Math.max(
+      0,
+      currentSegmentHeight - LANE_CONTENT_PADDING * 2,
+    )}
+    {@const expertiseRefRows = maxExpertiseInChain > 1 ? 2 : 1}
+    {@const expertiseRefCols =
+      maxExpertiseInChain > 0 ? Math.ceil(maxExpertiseInChain / 2) : 1}
+    {@const expertiseColGap =
+      expertiseRefCols > 1
+        ? Math.max(1, Math.min(4, expertiseLaneWidth * 0.06))
+        : 0}
+    {@const expertiseRowGap =
+      expertiseRefRows > 1
+        ? Math.max(1, Math.min(4, expertiseLaneHeight * 0.08))
+        : 0}
+    {@const expertiseAvailableWidth = Math.max(
+      0,
+      expertiseLaneWidth - expertiseColGap * (expertiseRefCols - 1),
+    )}
+    {@const expertiseAvailableHeight = Math.max(
+      0,
+      expertiseLaneHeight - expertiseRowGap * (expertiseRefRows - 1),
+    )}
+    {@const expertiseIconSize = Math.max(
+      0,
+      Math.min(
+        expertiseAvailableWidth / expertiseRefCols,
+        expertiseAvailableHeight / expertiseRefRows,
+      ),
+    )}
+    {@const expertiseRowsCurrent = expertiseCount > 1 ? 2 : 1}
+    {@const expertiseBlockHeight =
+      expertiseRowsCurrent * expertiseIconSize +
+      (expertiseRowsCurrent - 1) * expertiseRowGap}
+    {@const expertiseStartY =
+      expertiseLaneY +
+      Math.max(0, (expertiseLaneHeight - expertiseBlockHeight) / 2)}
+
+    <!-- time cell -->
     {@const timeValue = numericTimeValue(d.data?.time)}
-    {@const timeRatio = maxTimeInChain > 0 ? Math.min(1, timeValue / maxTimeInChain) : 0}
-    {@const timeLaneX = SEGMENT_SVG_PADDING_X + laneWidth + LANE_CONTENT_PADDING}
+    {@const timeRatio =
+      maxTimeInChain > 0 ? Math.min(1, timeValue / maxTimeInChain) : 0}
+    {@const timeLaneX =
+      SEGMENT_SVG_PADDING_X + laneWidth * 2 + LANE_CONTENT_PADDING}
     {@const timeLaneY = LANE_CONTENT_PADDING}
     {@const timeLaneWidth = Math.max(0, laneWidth - LANE_CONTENT_PADDING * 2)}
-    {@const timeLaneHeight = Math.max(0, currentSegmentHeight - LANE_CONTENT_PADDING * 2)}
+    {@const timeLaneHeight = Math.max(
+      0,
+      currentSegmentHeight - LANE_CONTENT_PADDING * 2,
+    )}
     {@const timeFillWidth = timeLaneWidth * timeRatio}
+    <!-- method cell -->
     {@const methodsCount = getMethodsCount(d.data?.methods)}
-    {@const methodsLaneX = SEGMENT_SVG_PADDING_X + laneWidth * 2 + LANE_CONTENT_PADDING}
+    {@const methodsLaneX =
+      SEGMENT_SVG_PADDING_X + laneWidth * 3 + LANE_CONTENT_PADDING}
     {@const methodsLaneY = LANE_CONTENT_PADDING}
-    {@const methodsLaneWidth = Math.max(0, laneWidth - LANE_CONTENT_PADDING * 2)}
-    {@const methodsLaneHeight = Math.max(0, currentSegmentHeight - LANE_CONTENT_PADDING * 2)}
+    {@const methodsLaneWidth = Math.max(
+      0,
+      laneWidth - LANE_CONTENT_PADDING * 2,
+    )}
+    {@const methodsLaneHeight = Math.max(
+      0,
+      currentSegmentHeight - LANE_CONTENT_PADDING * 2,
+    )}
     {@const methodsRefRows = maxMethodsInChain > 1 ? 2 : 1}
-    {@const methodsRefCols = maxMethodsInChain > 0 ? Math.ceil(maxMethodsInChain / 2) : 1}
+    {@const methodsRefCols =
+      maxMethodsInChain > 0 ? Math.ceil(maxMethodsInChain / 2) : 1}
     {@const methodsColGap =
-      methodsRefCols > 1 ? Math.max(1, Math.min(4, methodsLaneWidth * 0.06)) : 0}
+      methodsRefCols > 1
+        ? Math.max(1, Math.min(4, methodsLaneWidth * 0.06))
+        : 0}
     {@const methodsRowGap =
-      methodsRefRows > 1 ? Math.max(1, Math.min(4, methodsLaneHeight * 0.08)) : 0}
+      methodsRefRows > 1
+        ? Math.max(1, Math.min(4, methodsLaneHeight * 0.08))
+        : 0}
     {@const methodsAvailableWidth = Math.max(
       0,
       methodsLaneWidth - methodsColGap * (methodsRefCols - 1),
@@ -233,15 +327,23 @@
     )}
     {@const methodsRowsCurrent = methodsCount > 1 ? 2 : 1}
     {@const methodsBlockHeight =
-      methodsRowsCurrent * methodsIconSize + (methodsRowsCurrent - 1) * methodsRowGap}
-    {@const methodsStartY = methodsLaneY + Math.max(0, (methodsLaneHeight - methodsBlockHeight) / 2)}
+      methodsRowsCurrent * methodsIconSize +
+      (methodsRowsCurrent - 1) * methodsRowGap}
+    {@const methodsStartY =
+      methodsLaneY + Math.max(0, (methodsLaneHeight - methodsBlockHeight) / 2)}
+    <!-- error cell -->
     {@const errorsCount = getErrorsCount(d.data?.errors)}
-    {@const errorsLaneX = SEGMENT_SVG_PADDING_X + laneWidth * 3 + LANE_CONTENT_PADDING}
+    {@const errorsLaneX =
+      SEGMENT_SVG_PADDING_X + laneWidth * 4 + LANE_CONTENT_PADDING}
     {@const errorsLaneY = LANE_CONTENT_PADDING}
     {@const errorsLaneWidth = Math.max(0, laneWidth - LANE_CONTENT_PADDING * 2)}
-    {@const errorsLaneHeight = Math.max(0, currentSegmentHeight - LANE_CONTENT_PADDING * 2)}
+    {@const errorsLaneHeight = Math.max(
+      0,
+      currentSegmentHeight - LANE_CONTENT_PADDING * 2,
+    )}
     {@const errorsRefRows = maxErrorsInChain > 1 ? 2 : 1}
-    {@const errorsRefCols = maxErrorsInChain > 0 ? Math.ceil(maxErrorsInChain / 2) : 1}
+    {@const errorsRefCols =
+      maxErrorsInChain > 0 ? Math.ceil(maxErrorsInChain / 2) : 1}
     {@const errorsColGap =
       errorsRefCols > 1 ? Math.max(1, Math.min(4, errorsLaneWidth * 0.06)) : 0}
     {@const errorsRowGap =
@@ -263,22 +365,35 @@
     )}
     {@const errorsRowsCurrent = errorsCount > 1 ? 2 : 1}
     {@const errorsBlockHeight =
-      errorsRowsCurrent * errorsIconSize + (errorsRowsCurrent - 1) * errorsRowGap}
-    {@const errorsStartY = errorsLaneY + Math.max(0, (errorsLaneHeight - errorsBlockHeight) / 2)}
+      errorsRowsCurrent * errorsIconSize +
+      (errorsRowsCurrent - 1) * errorsRowGap}
+    {@const errorsStartY =
+      errorsLaneY + Math.max(0, (errorsLaneHeight - errorsBlockHeight) / 2)}
+    <!-- text cell -->
     {@const textLaneX =
-      SEGMENT_SVG_PADDING_X + laneWidth * (SEGMENT_LANE_COUNT - 1) + LANE_CONTENT_PADDING}
+      SEGMENT_SVG_PADDING_X +
+      laneWidth * (SEGMENT_LANE_COUNT - 1) +
+      LANE_CONTENT_PADDING}
     {@const textLaneY = LANE_CONTENT_PADDING}
     {@const textLaneWidth = Math.max(0, laneWidth - LANE_CONTENT_PADDING * 2)}
-    {@const textLaneHeight = Math.max(0, currentSegmentHeight - LANE_CONTENT_PADDING * 2)}
+    {@const textLaneHeight = Math.max(
+      0,
+      currentSegmentHeight - LANE_CONTENT_PADDING * 2,
+    )}
     {@const textFontSize = Math.max(8, Math.min(12, laneWidth * 0.14))}
     {@const textLineHeight = textFontSize * 1.2}
-    {@const maxTextLines = Math.max(1, Math.floor(textLaneHeight / textLineHeight))}
+    {@const maxTextLines = Math.max(
+      1,
+      Math.floor(textLaneHeight / textLineHeight),
+    )}
     {@const tooltipLines = wrapWordsToLines(
       d.data?.tooltip_name,
       textLaneWidth,
       textFontSize,
     ).slice(0, maxTextLines)}
-    {@const textStartY = textLaneY + Math.max(0, (textLaneHeight - tooltipLines.length * textLineHeight) / 2)}
+    {@const textStartY =
+      textLaneY +
+      Math.max(0, (textLaneHeight - tooltipLines.length * textLineHeight) / 2)}
     {@const r = nodeRadius(ppl) * scale}
     {@const sw = nodeStrokeWidth(ppl) * scale}
     {@const dots = getPeopleDots(ppl, scale)}
@@ -356,9 +471,26 @@
               <image
                 href="/cog.svg"
                 x={methodsLaneX + methodCol * (methodsIconSize + methodsColGap)}
-                y={methodsStartY + methodRow * (methodsIconSize + methodsRowGap)}
+                y={methodsStartY +
+                  methodRow * (methodsIconSize + methodsRowGap)}
                 width={methodsIconSize}
                 height={methodsIconSize}
+                preserveAspectRatio="xMinYMin meet"
+              />
+            {/each}
+          {/if}
+          {#if expertiseCount > 0 && expertiseIconSize > 0}
+            {#each Array.from({ length: expertiseCount }, (_, expertiseIndex) => expertiseIndex) as expertiseIndex}
+              {@const expertiseCol = Math.floor(expertiseIndex / 2)}
+              {@const expertiseRow = expertiseIndex % 2}
+              <image
+                href="/hat.svg"
+                x={expertiseLaneX +
+                  expertiseCol * (expertiseIconSize + expertiseColGap)}
+                y={expertiseStartY +
+                  expertiseRow * (expertiseIconSize + expertiseRowGap)}
+                width={expertiseIconSize}
+                height={expertiseIconSize}
                 preserveAspectRatio="xMinYMin meet"
               />
             {/each}
