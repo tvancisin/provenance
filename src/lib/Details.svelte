@@ -7,7 +7,7 @@
   // half height for conflict, negotiation, and agreement segment
   const HALF_HEIGHT_SEGMENT_COUNT = 3;
   // how much segment expands on click
-  const SEGMENT_EXPAND_DELTA = 100;
+  const SEGMENT_EXPAND_DELTA = 200;
   // one lane each: process, time, expertise, methods, errors, text
   const SEGMENT_LANE_COUNT = 6;
   const SEGMENT_SVG_PADDING_X = 8;
@@ -15,7 +15,7 @@
   let expandedSegmentIndex = null;
 
   function isBottomSegment(index, totalCount) {
-    return index >= Math.max(0, totalCount - HALF_HEIGHT_SEGMENT_COUNT);
+    return index >= Math.max(0, totalCount - HALF_HEIGHT_SEGMENT_COUNT - 1);
   }
 
   function handleSegmentClick(event, segmentIndex) {
@@ -186,9 +186,31 @@
         class="detail-reset-button"
         type="button"
         on:click={onReset}
-        title="Reset"
-        ><i class="fa fa-undo" aria-hidden="true"></i>
+        title="Back to overview"
+        ><i class="fa fa-chevron-left" aria-hidden="true"></i>
       </button>
+      <div
+        style="position: absolute; bottom: 2px; display: flex; flex-direction: row;   width: 100%; justify-content: space-between; align-items: flex-end;"
+      >
+        <label>
+          <span>Process</span>
+        </label>
+        <label>
+          <span>Expertise</span>
+        </label>
+        <label>
+          <span>Time</span>
+        </label>
+        <label>
+          <span>Method</span>
+        </label>
+        <label>
+          <span>Errors</span>
+        </label>
+        <label>
+          <span>Description</span>
+        </label>
+      </div>
     </div>
   {/if}
 
@@ -286,6 +308,7 @@
       currentSegmentHeight - LANE_CONTENT_PADDING * 2,
     )}
     {@const timeFillWidth = timeLaneWidth * timeRatio}
+
     <!-- method cell -->
     {@const methodsCount = getMethodsCount(d.data?.methods)}
     {@const methodsLaneX =
@@ -331,6 +354,7 @@
       (methodsRowsCurrent - 1) * methodsRowGap}
     {@const methodsStartY =
       methodsLaneY + Math.max(0, (methodsLaneHeight - methodsBlockHeight) / 2)}
+
     <!-- error cell -->
     {@const errorsCount = getErrorsCount(d.data?.errors)}
     {@const errorsLaneX =
@@ -369,6 +393,7 @@
       (errorsRowsCurrent - 1) * errorsRowGap}
     {@const errorsStartY =
       errorsLaneY + Math.max(0, (errorsLaneHeight - errorsBlockHeight) / 2)}
+
     <!-- text cell -->
     {@const textLaneX =
       SEGMENT_SVG_PADDING_X +
@@ -400,26 +425,27 @@
     {@const dotRadius = Math.max(0.8, (segment_height <= 40 ? 1.5 : 2) * scale)}
     <div
       class="detail-segment"
-      on:click={(event) => handleSegmentClick(event, segmentIndex)}
-      on:keydown={(event) => {
-        if (event.key === "Enter" || event.key === " ") {
-          handleSegmentClick(event, segmentIndex);
-        }
-      }}
-      role="button"
-      tabindex="0"
+      style="
+        height: {renderedSegmentHeight}px;
+        width: {details_width}px;
+        transform: translateY({isExpanded && expandsUp ? -SEGMENT_EXPAND_DELTA : 0}px);
+        margin-bottom: {isExpanded && expandsUp ? -SEGMENT_EXPAND_DELTA : 0}px;
+      "
       aria-label={`Toggle details for ${d.data?.tooltip_name ?? "segment"}`}
       aria-expanded={isExpanded}
-      style="
-    height: {renderedSegmentHeight}px;
-    width: {details_width}px;
-    transform: translateY({isExpanded && expandsUp
-        ? -SEGMENT_EXPAND_DELTA
-        : 0}px);
-    margin-bottom: {isExpanded && expandsUp ? -SEGMENT_EXPAND_DELTA : 0}px;
-  "
     >
-      <div class="segment-svg-shell" style="height: {currentSegmentHeight}px;">
+      <div
+        class="segment-svg-shell"
+        style="height: {currentSegmentHeight}px;"
+        on:click={(event) => handleSegmentClick(event, segmentIndex)}
+        on:keydown={(event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            handleSegmentClick(event, segmentIndex);
+          }
+        }}
+        role="button"
+        tabindex="0"
+      >
         <svg
           class="segment-svg"
           aria-hidden="true"
@@ -446,15 +472,6 @@
               />
             {/each}
           </g>
-          <!-- <rect
-            x={timeLaneX}
-            y={timeLaneY}
-            width={timeLaneWidth}
-            height={timeLaneHeight}
-            rx="2"
-            ry="2"
-            fill="rgba(255, 255, 255, 0.1)"
-          /> -->
           <rect
             x={timeLaneX}
             y={timeLaneY}
@@ -536,9 +553,56 @@
       {#if isExpanded}
         <div
           class="segment-expanded-content"
-          style="height: {SEGMENT_EXPAND_DELTA}px;"
+          style="height: {SEGMENT_EXPAND_DELTA}px; display: flex; flex-direction: row; width: 100%;"
         >
-          {d.data?.segment_text ?? ""}
+          <!-- Textual part (2/3 width) -->
+          <div
+            style="flex: 2; padding: 8px 12px 8px 0; border-right: 1.5px solid #ccc; min-width: 0; overflow-wrap: break-word; overflow-y: auto; max-height: 100%;"
+          >
+            {#if d.data}
+              {#if d.data.tooltip_name && d.data.ppl && d.data.expertise && d.data.methods && d.data.errors && d.data.time}
+                <span>
+                  The {d.data.tooltip_name.toLowerCase()} is done by {d.data
+                    .ppl}
+                  {d.data.ppl == 1 ? "person" : "people"} with expertise in {Array.isArray(
+                    d.data.expertise,
+                  )
+                    ? d.data.expertise
+                        .join(", ")
+                        .replace(/, ([^,]*)$/, " and $1")
+                    : d.data.expertise}. Methods used during this step are {Array.isArray(
+                    d.data.methods,
+                  )
+                    ? d.data.methods.join(", ").replace(/, ([^,]*)$/, " or $1")
+                    : d.data.methods}. Potential mistakes that could happen
+                  during this step are {Array.isArray(d.data.errors)
+                    ? d.data.errors.join(", ").replace(/, ([^,]*)$/, " and $1")
+                    : d.data.errors}. Overall, this process takes {d.data.time}
+                  {d.data.time == 1 ? "hour" : "hours"}.
+                </span>
+              {:else}
+                {d.data?.segment_text ?? ""}
+              {/if}
+            {:else}
+              {d.data?.segment_text ?? ""}
+            {/if}
+          </div>
+          <!-- Image part (1/3 width) -->
+          <div
+            style="flex: 1; display: flex; align-items: center; justify-content: center; min-width: 0; padding: 8px 0 8px 12px;"
+          >
+            {#if d.data?.segment_image}
+              <a href={d.data.link} target="_blank"
+                ><img
+                  src={d.data.segment_image}
+                  alt="Segment visual"
+                  style="max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 4px;"
+                /></a
+              >
+            {:else}
+              <span style="color: #aaa; font-size: 0.95em;">No image</span>
+            {/if}
+          </div>
         </div>
       {/if}
     </div>
@@ -600,8 +664,8 @@
   .detail-title-segment {
     position: relative;
     align-items: center;
-    justify-content: center;
     border: none;
+    padding-top: 10px;
   }
 
   .detail-title-text {
@@ -614,21 +678,17 @@
 
   .detail-reset-button {
     position: absolute;
-    top: 50%;
-    right: 10px;
-    transform: translateY(-50%);
-    width: 35px;
-    height: 35px;
-    padding: 0;
-    box-sizing: border-box;
-    border: solid 1px rgba(255, 255, 255, 0.3);
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.08);
+    top: 8px;
+    left: 2px;
+    border-radius: 5px;
+    padding: 4px 6px;
+    font-size: 20px;
+    border: none;
+    background: #001c23;
     color: white;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    line-height: 1;
     cursor: pointer;
   }
 
@@ -638,5 +698,15 @@
 
   .detail-segment:hover {
     border-color: rgba(126, 126, 126, 0.8);
+  }
+
+  label {
+    color: gray;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    font-size: 10px;
+    flex: 1;
+    min-width: 0;
   }
 </style>
