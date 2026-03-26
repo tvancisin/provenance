@@ -591,6 +591,8 @@
             {currentLevelUp}
             {ucdpNodes}
             {nodesUp}
+            {linksUp}
+            {linksDown}
             {nodesDown}
             {regionLabels}
             {yCenter}

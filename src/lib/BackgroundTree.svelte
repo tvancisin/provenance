@@ -3,7 +3,9 @@
 
   export let ucdpNodes = [];
   export let nodesUp = [];
+  export let linksUp = [];
   export let nodesDown = [];
+  export let linksDown = [];
   export let regionLabels = [];
   export let currentLevelUp;
   export let yCenter;
@@ -15,8 +17,6 @@
 
   $: visInfographics = nodesUp.find((d) => d.data.name == "Infographics");
   $: visFem = nodesUp.find((d) => d.data.name == "PeaceFem");
-  $: linksUp = nodesUp.slice(1);
-  $: linksDown = nodesDown.filter((d) => d.parent);
   $: ucdpLinks = ucdpNodes.filter((d) => d.parent);
   $: ucdpRoot = ucdpNodes.find((d) => d.data.name === "__ucdp_root__");
   $: globeNode = nodesUp.find((d) => d.data.name === "Data Overview");

@@ -193,27 +193,15 @@
         title="Back to overview"
         ><i class="fa fa-chevron-left" aria-hidden="true"></i>
       </button>
-      <div
+      <div class="labels"
         style="position: absolute; bottom: 2px; display: flex; flex-direction: row;   width: 100%; justify-content: space-between; align-items: flex-end;"
       >
-        <label>
-          <span>Process</span>
-        </label>
-        <label>
-          <span>Expertise</span>
-        </label>
-        <label>
-          <span>Time</span>
-        </label>
-        <label>
-          <span>Method</span>
-        </label>
-        <label>
-          <span>Errors</span>
-        </label>
-        <label>
-          <span>Description</span>
-        </label>
+        <span>Process</span>
+        <span>Expertise</span>
+        <span>Time</span>
+        <span>Method</span>
+        <span>Errors</span>
+        <span>Description</span>
       </div>
     </div>
   {/if}
@@ -706,7 +694,7 @@
     border-color: rgba(126, 126, 126, 0.8);
   }
 
-  label {
+  .labels span {
     color: gray;
     text-align: center;
     display: flex;
