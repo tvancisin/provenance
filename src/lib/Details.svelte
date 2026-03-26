@@ -14,6 +14,10 @@
   const LANE_CONTENT_PADDING = 2;
   let expandedSegmentIndex = null;
 
+  const COG_ICON_HREF = `${import.meta.env.BASE_URL}cog.svg`;
+  const HAT_ICON_HREF = `${import.meta.env.BASE_URL}hat.svg`;
+  const WARN_ICON_HREF = `${import.meta.env.BASE_URL}erro.svg`;
+
   function isBottomSegment(index, totalCount) {
     return index >= Math.max(0, totalCount - HALF_HEIGHT_SEGMENT_COUNT - 1);
   }
@@ -428,7 +432,9 @@
       style="
         height: {renderedSegmentHeight}px;
         width: {details_width}px;
-        transform: translateY({isExpanded && expandsUp ? -SEGMENT_EXPAND_DELTA : 0}px);
+        transform: translateY({isExpanded && expandsUp
+        ? -SEGMENT_EXPAND_DELTA
+        : 0}px);
         margin-bottom: {isExpanded && expandsUp ? -SEGMENT_EXPAND_DELTA : 0}px;
       "
       aria-label={`Toggle details for ${d.data?.tooltip_name ?? "segment"}`}
@@ -486,7 +492,7 @@
               {@const methodCol = Math.floor(methodIndex / 2)}
               {@const methodRow = methodIndex % 2}
               <image
-                href="/cog.svg"
+                href={COG_ICON_HREF}
                 x={methodsLaneX + methodCol * (methodsIconSize + methodsColGap)}
                 y={methodsStartY +
                   methodRow * (methodsIconSize + methodsRowGap)}
@@ -501,7 +507,7 @@
               {@const expertiseCol = Math.floor(expertiseIndex / 2)}
               {@const expertiseRow = expertiseIndex % 2}
               <image
-                href="/hat.svg"
+                href={HAT_ICON_HREF}
                 x={expertiseLaneX +
                   expertiseCol * (expertiseIconSize + expertiseColGap)}
                 y={expertiseStartY +
@@ -517,7 +523,7 @@
               {@const errorCol = Math.floor(errorIndex / 2)}
               {@const errorRow = errorIndex % 2}
               <image
-                href="/erro.svg"
+                href={WARN_ICON_HREF}
                 x={errorsLaneX + errorCol * (errorsIconSize + errorsColGap)}
                 y={errorsStartY + errorRow * (errorsIconSize + errorsRowGap)}
                 width={errorsIconSize}
