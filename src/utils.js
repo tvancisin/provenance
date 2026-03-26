@@ -709,7 +709,7 @@ let original_data = {
     {
       name: "agreement",
       number: 38,
-      continent: "Cross",
+      continent: "Cross_Continental",
       children: [{ name: "negotiation", children: [{ name: "conflict" }] }],
     },
   ],
@@ -753,7 +753,7 @@ let original_data = {
     {
       name: "conflict",
       number: 38,
-      continent: "Cross",
+      continent: "Cross-Continental",
     },
   ]
 };

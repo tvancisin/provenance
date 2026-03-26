@@ -16,6 +16,8 @@
   // half margin when node clicked
   $: margin = { top: 20, right: clicked ? 50 : 100, bottom: 20, left: 100 };
 
+  let stoppedAtNegotiation = null;
+
   const STEP_BY_LEVEL = new Map([
     ["-1:0", 0],
     ["-1:1", 1],
@@ -94,7 +96,7 @@
       continent,
       count: nodes[0]?.data.number ?? nodes.length, // true count
       x: d3.mean(nodes, (d) => d.x),
-      y: yCenter + downHeight,
+      y: yCenter + downHeight - 3,
     }));
   })();
 
@@ -241,24 +243,29 @@
     // agreement-level nodes
     const agreementNodes = allNodesDown.filter((d) => d.depth === 1);
     // only compute removedAgreements once on first load
+    // if (!removedAgreements) {
+    //   removedAgreements = pickRandom(agreementNodes, 20);
+    // }
+
     if (!removedAgreements) {
-      removedAgreements = pickRandom(agreementNodes, 20);
+      const shuffled = d3.shuffle(agreementNodes.slice());
+      removedAgreements = new Set(shuffled.slice(0, 10)); // fully pruned
+      stoppedAtNegotiation = new Set(shuffled.slice(10, 20)); // stop at negotiation
     }
 
-    // filter nodes
     nodesDown = allNodesDown.filter((d) => {
-      // always keep conflict nodes
-      if (d.data.name === "conflict") return true;
-      // otherwise remove if in removed agreement subtree
-      return !isInRemovedSubtree(d, removedAgreements);
+      if (d.data.name === "conflict") return true; // wait — should this be removed for stopped set?
+      if (isInRemovedSubtree(d, removedAgreements)) return false;
+      if (d.depth < 2 && isInRemovedSubtree(d, stoppedAtNegotiation))
+        return false;
+      return true;
     });
 
-    // filter links
     linksDown = allLinksDown.filter((d) => {
-      // keep links *to* conflict nodes
-      if (d.data.name === "conflict") return true;
-      // otherwise same pruning rule
-      return !isInRemovedSubtree(d, removedAgreements);
+      if (isInRemovedSubtree(d, removedAgreements)) return false;
+      if (d.depth < 3 && isInRemovedSubtree(d, stoppedAtNegotiation))
+        return false;
+      return true;
     });
   }
 
@@ -322,7 +329,10 @@
 
       // 2. Always add all downward links
       linksDown.forEach((d) => {
-        if (!isInRemovedSubtree(d, removedAgreements)) {
+        if (
+          !isInRemovedSubtree(d, removedAgreements) &&
+          !isInRemovedSubtree(d, stoppedAtNegotiation)
+        ) {
           const key = `${d.parent.data.id}→${d.data.id}`;
           links.add(key);
         }
@@ -577,7 +587,7 @@
     {#if width !== undefined || height !== undefined}
       <svg width={clicked ? width * 0.6 : width} {height}>
         <g transform={`translate(${margin.right}, ${margin.top})`}>
-          <BackgroundTree
+          <!-- <BackgroundTree
             {currentLevelUp}
             {ucdpNodes}
             {nodesUp}
@@ -585,7 +595,7 @@
             {regionLabels}
             {yCenter}
             {clicked}
-          />
+          /> -->
           <ForegroundTree
             {nodesUp}
             {linksUp}
@@ -644,12 +654,7 @@
       </div>
     {/if}
   </div>
-  <Details
-    {fullChain}
-    {details_width}
-    {segment_height}
-    onReset={reset}
-  />
+  <Details {fullChain} {details_width} {segment_height} onReset={reset} />
 </div>
 
 <style>

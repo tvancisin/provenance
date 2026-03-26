@@ -38,7 +38,9 @@
   };
 
   function getUpwardBranchStroke(branchType) {
-    return upwardStrokeByBranchType[branchType] ?? upwardStrokeByBranchType.default;
+    return (
+      upwardStrokeByBranchType[branchType] ?? upwardStrokeByBranchType.default
+    );
   }
 
   $: x1 = globeNode ? globeNode.x + 4 : 0;
@@ -250,17 +252,19 @@
 {/each}
 
 <!-- continent labels -->
-{#if currentLevelUp >= 16 && !clicked}
-  {#each regionLabels as r}
-    <text
-      x={r.x}
-      y={r.y}
-      text-anchor="middle"
-      font-size="12"
-      fill="white"
-      letter-spacing="0.5"
-    >
-      {r.continent.replace("_", " ") + ` (${r.count})`}
-    </text>
-  {/each}
-{/if}
+<!-- {#if currentLevelUp >= 16 && !clicked} -->
+{#each regionLabels as r}
+  <text
+    x={r.x}
+    y={r.y}
+    text-anchor="middle"
+    font-size="12"
+    fill="white"
+    letter-spacing="0.5"
+  >
+    {#each r.continent.replace("_", " ").split(" ") as word, i}
+      <tspan x={r.x} dy={i === 0 ? 0 : "1.2em"}>{word}</tspan>
+    {/each}
+  </text>
+{/each}
+<!-- {/if} -->
