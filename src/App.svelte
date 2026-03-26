@@ -587,7 +587,7 @@
     {#if width !== undefined || height !== undefined}
       <svg width={clicked ? width * 0.6 : width} {height}>
         <g transform={`translate(${margin.right}, ${margin.top})`}>
-          <!-- <BackgroundTree
+          <BackgroundTree
             {currentLevelUp}
             {ucdpNodes}
             {nodesUp}
@@ -595,7 +595,7 @@
             {regionLabels}
             {yCenter}
             {clicked}
-          /> -->
+          />
           <ForegroundTree
             {nodesUp}
             {linksUp}
