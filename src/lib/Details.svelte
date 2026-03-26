@@ -46,6 +46,7 @@
     return Math.max(max, time);
   }, 0);
 
+
   $: maxMethodsInChain = fullChain.reduce((max, node) => {
     const count = getMethodsCount(node?.data?.methods);
     return Math.max(max, count);
@@ -60,6 +61,8 @@
     const count = getErrorsCount(node?.data?.errors);
     return Math.max(max, count);
   }, 1);
+
+  $: maxIconsInChain = Math.max(maxMethodsInChain, maxExpertiseInChain, maxErrorsInChain);
 
   // process circles logic
   function nodeRadius(ppl) {
@@ -253,9 +256,8 @@
       0,
       currentSegmentHeight - LANE_CONTENT_PADDING * 2,
     )}
-    {@const expertiseRefRows = maxExpertiseInChain > 1 ? 2 : 1}
-    {@const expertiseRefCols =
-      maxExpertiseInChain > 0 ? Math.ceil(maxExpertiseInChain / 2) : 1}
+    {@const expertiseRefRows = maxIconsInChain > 1 ? 2 : 1}
+    {@const expertiseRefCols = maxIconsInChain > 0 ? Math.ceil(maxIconsInChain / 2) : 1}
     {@const expertiseColGap =
       expertiseRefCols > 1
         ? Math.max(1, Math.min(4, expertiseLaneWidth * 0.06))
@@ -314,9 +316,8 @@
       0,
       currentSegmentHeight - LANE_CONTENT_PADDING * 2,
     )}
-    {@const methodsRefRows = maxMethodsInChain > 1 ? 2 : 1}
-    {@const methodsRefCols =
-      maxMethodsInChain > 0 ? Math.ceil(maxMethodsInChain / 2) : 1}
+    {@const methodsRefRows = maxIconsInChain > 1 ? 2 : 1}
+    {@const methodsRefCols = maxIconsInChain > 0 ? Math.ceil(maxIconsInChain / 2) : 1}
     {@const methodsColGap =
       methodsRefCols > 1
         ? Math.max(1, Math.min(4, methodsLaneWidth * 0.06))
@@ -357,9 +358,8 @@
       0,
       currentSegmentHeight - LANE_CONTENT_PADDING * 2,
     )}
-    {@const errorsRefRows = maxErrorsInChain > 1 ? 2 : 1}
-    {@const errorsRefCols =
-      maxErrorsInChain > 0 ? Math.ceil(maxErrorsInChain / 2) : 1}
+    {@const errorsRefRows = maxIconsInChain > 1 ? 2 : 1}
+    {@const errorsRefCols = maxIconsInChain > 0 ? Math.ceil(maxIconsInChain / 2) : 1}
     {@const errorsColGap =
       errorsRefCols > 1 ? Math.max(1, Math.min(4, errorsLaneWidth * 0.06)) : 0}
     {@const errorsRowGap =
