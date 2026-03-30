@@ -46,7 +46,6 @@
     return Math.max(max, time);
   }, 0);
 
-
   $: maxMethodsInChain = fullChain.reduce((max, node) => {
     const count = getMethodsCount(node?.data?.methods);
     return Math.max(max, count);
@@ -62,7 +61,11 @@
     return Math.max(max, count);
   }, 1);
 
-  $: maxIconsInChain = Math.max(maxMethodsInChain, maxExpertiseInChain, maxErrorsInChain);
+  $: maxIconsInChain = Math.max(
+    maxMethodsInChain,
+    maxExpertiseInChain,
+    maxErrorsInChain,
+  );
 
   // process circles logic
   function nodeRadius(ppl) {
@@ -196,7 +199,8 @@
         title="Back to overview"
         ><i class="fa fa-chevron-left" aria-hidden="true"></i>
       </button>
-      <div class="labels"
+      <div
+        class="labels"
         style="position: absolute; bottom: 2px; display: flex; flex-direction: row;   width: 100%; justify-content: space-between; align-items: flex-end;"
       >
         <span>Process</span>
@@ -257,7 +261,8 @@
       currentSegmentHeight - LANE_CONTENT_PADDING * 2,
     )}
     {@const expertiseRefRows = maxIconsInChain > 1 ? 2 : 1}
-    {@const expertiseRefCols = maxIconsInChain > 0 ? Math.ceil(maxIconsInChain / 2) : 1}
+    {@const expertiseRefCols =
+      maxIconsInChain > 0 ? Math.ceil(maxIconsInChain / 2) : 1}
     {@const expertiseColGap =
       expertiseRefCols > 1
         ? Math.max(1, Math.min(4, expertiseLaneWidth * 0.06))
@@ -317,7 +322,8 @@
       currentSegmentHeight - LANE_CONTENT_PADDING * 2,
     )}
     {@const methodsRefRows = maxIconsInChain > 1 ? 2 : 1}
-    {@const methodsRefCols = maxIconsInChain > 0 ? Math.ceil(maxIconsInChain / 2) : 1}
+    {@const methodsRefCols =
+      maxIconsInChain > 0 ? Math.ceil(maxIconsInChain / 2) : 1}
     {@const methodsColGap =
       methodsRefCols > 1
         ? Math.max(1, Math.min(4, methodsLaneWidth * 0.06))
@@ -359,7 +365,8 @@
       currentSegmentHeight - LANE_CONTENT_PADDING * 2,
     )}
     {@const errorsRefRows = maxIconsInChain > 1 ? 2 : 1}
-    {@const errorsRefCols = maxIconsInChain > 0 ? Math.ceil(maxIconsInChain / 2) : 1}
+    {@const errorsRefCols =
+      maxIconsInChain > 0 ? Math.ceil(maxIconsInChain / 2) : 1}
     {@const errorsColGap =
       errorsRefCols > 1 ? Math.max(1, Math.min(4, errorsLaneWidth * 0.06)) : 0}
     {@const errorsRowGap =
@@ -547,11 +554,11 @@
       {#if isExpanded}
         <div
           class="segment-expanded-content"
-          style="height: {SEGMENT_EXPAND_DELTA}px; display: flex; flex-direction: row; width: 100%;"
+          style="height: {SEGMENT_EXPAND_DELTA}px; display: flex; flex-direction: row; width: 100%; overflow: hidden;"
         >
           <!-- Textual part (2/3 width) -->
           <div
-            style="flex: 2; padding: 8px 12px 8px 0; border-right: 1.5px solid #ccc; min-width: 0; overflow-wrap: break-word; overflow-y: auto; max-height: 100%;"
+            style="flex: 1; padding: 8px 12px 8px 0; border-right: 1.5px solid #ccc; min-width: 0; overflow-wrap: break-word; overflow-y: auto; max-height: 100%;"
           >
             {#if d.data}
               {#if d.data.tooltip_name && d.data.ppl && d.data.expertise && d.data.methods && d.data.errors && d.data.time}
@@ -583,16 +590,17 @@
           </div>
           <!-- Image part (1/3 width) -->
           <div
-            style="flex: 1; display: flex; align-items: center; justify-content: center; min-width: 0; padding: 8px 0 8px 12px;"
+            style="flex: 1; display: flex; align-items: center; justify-content: center; min-width: 0; padding: 8px 0 8px 12px; overflow: hidden; max-height: 100%;"
           >
             {#if d.data?.segment_image}
-              <a href={d.data.link} target="_blank"
-                ><img
-                  src={d.data.segment_image}
-                  alt="Segment visual"
-                  style="max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 4px;"
-                /></a
-              >
+<a href={d.data.link} target="_blank" style="display: flex; max-height: 100%; overflow: hidden;">
+  <img
+    src={d.data.segment_image}
+    alt="Segment visual"
+    class="segment-image"
+    style="max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 4px;"
+  />
+</a>
             {:else}
               <span style="color: #aaa; font-size: 0.95em;">No image</span>
             {/if}
@@ -648,7 +656,7 @@
     padding: 10px 12px;
     box-sizing: border-box;
     border-top: solid 1px rgba(106, 106, 106, 0.5);
-    background-color: #00252e;
+    background-color: #002933;
     color: rgba(255, 255, 255, 0.92);
     font-size: 12px;
     line-height: 1.35;
@@ -691,7 +699,7 @@
   }
 
   .detail-segment:hover {
-    border-color: rgba(126, 126, 126, 0.8);
+    border-color: rgba(197, 197, 197, 0.8);
   }
 
   .labels span {
@@ -703,4 +711,6 @@
     flex: 1;
     min-width: 0;
   }
+
+  
 </style>

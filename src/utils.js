@@ -23,6 +23,8 @@ let original_data = {
       methods: ["manual", "AI-assisted"],
       time: 50,
       type: "pax_translate",
+      segment_image: "segment_images/translation.png",
+      link: "https://www.peaceagreements.org/agreements/152/",
       children: [
         {
           name: "Transcribe",
@@ -35,6 +37,8 @@ let original_data = {
           methods: ["OCR", "hand-typed", "copy-paste", "automated extraction"],
           time: 40,
           type: "pax_transcribe",
+          segment_image: "segment_images/transcription.png",
+          link: "https://www.peaceagreements.org/agreements/1688/",
           children: [
             {
               name: "Code",
@@ -47,6 +51,7 @@ let original_data = {
               methods: ["manual", "AI-assisted"],
               time: 90,
               type: "pax_code",
+              segment_image: "segment_images/coding.png",
               link: "https://www.peaceagreements.org/cms/documents/4196/PA_X_codebook_v9.pdf",
               children: [
                 {
@@ -60,6 +65,7 @@ let original_data = {
                   methods: ["resolve coding questions", "review during coding", "include if in doubt"],
                   time: 20,
                   type: "pax_quality_control",
+                  segment_image: "segment_images/qc.png",
                   children: [
                     {
                       name: "PA-X",
@@ -72,6 +78,7 @@ let original_data = {
                       methods: ["manual entry", "automated processing"],
                       time: 30,
                       type: "pax_db",
+                      segment_image: "segment_images/pax_db.png",
                       link: "https://www.peaceagreements.org/agreements/search/",
                       children: [
                         {
@@ -164,6 +171,8 @@ let original_data = {
                           methods: ["manual coding", "AI-assisted coding"],
                           time: 50,
                           type: "pax_gender_code",
+
+                          segment_image: "segment_images/coding.png",
                           link: "https://www.peaceagreements.org/cms/documents/3925/PA_X_codebook_wgg_v8.pdf",
                           children: [
                             {
@@ -177,6 +186,7 @@ let original_data = {
                               methods: ["resolve coding questions", "review during coding", "include if in doubt"],
                               time: 20,
                               type: "pax_gender_quality_control",
+                              segment_image: "segment_images/qc.png",
                               children: [
                                 {
                                   name: "PA-X Gender",
@@ -189,6 +199,7 @@ let original_data = {
                                   methods: ["manual", "automatic"],
                                   time: 10,
                                   type: "pax_gender_db",
+                                  segment_image: "segment_images/pax_gender_db.png",
                                   link: "https://www.peaceagreements.org/agreements/wggsearch/",
                                   children: [
                                     {
@@ -202,6 +213,7 @@ let original_data = {
                                       methods: ["kotlin", "swift"],
                                       time: 50,
                                       type: "prog",
+                                      segment_image: "segment_images/programming.png",
                                       children: [
                                         {
                                           name: "PeaceFem",
@@ -214,6 +226,7 @@ let original_data = {
                                           methods: ["mobile app", "interactive browsing", "resource navigation"],
                                           time: 10,
                                           type: "app",
+                                          segment_image: "segment_images/peacefem.png",
                                           link: "https://peacerep.org/digital-resources/peacefem/",
                                         },
                                       ]
@@ -229,6 +242,7 @@ let original_data = {
                                       methods: ["d3", "svelte", "git", "python"],
                                       time: 40,
                                       type: "prog",
+                                      segment_image: "segment_images/programming.png",
                                       link: "https://github.com/peacerep/pax_gender",
                                       children: [
                                         {
@@ -242,7 +256,7 @@ let original_data = {
                                           methods: ["scrollytelling", "interactive charts", "narrative flow"],
                                           time: 10,
                                           type: "vis",
-                                          segment_image: "gender.png",
+                                          segment_image: "segment_images/gender.png",
                                           link: "https://www.peaceagreements.org/visualizations/gender-vis/",
                                         },
                                       ],
@@ -264,6 +278,7 @@ let original_data = {
                           methods: ["manual"],
                           time: 100,
                           type: "pax_children_code",
+                          segment_image: "segment_images/coding.png",
                           link: "https://peacerep.org/wp-content/uploads/2023/10/Children-AND-Youth-in-Peace-Agreement-Database-Codebook.pdf", //added codebook here
                           children: [
                             {
@@ -277,6 +292,7 @@ let original_data = {
                               methods: ["ironout questions", "do as we code", "include if in doubt"],
                               time: 20,
                               type: "pax_children_quality_control",
+                              segment_image: "segment_images/qc.png",
                               children: [
                                 {
                                   name: "Children & Youth",
@@ -289,6 +305,8 @@ let original_data = {
                                   methods: ["manual"],
                                   time: 10,
                                   type: "pax_children_db",
+                                  segment_image: "segment_images/ch_y_db.png",
+                                  link: "https://peacerep.org/children-and-youth-database/",
                                   children: [
                                     {
                                       name: "PBi Youth Development",
@@ -301,6 +319,7 @@ let original_data = {
                                       methods: ["powerBI", "dashboard design", "interactive reporting"],
                                       time: 10,
                                       type: "prog",
+                                      segment_image: "segment_images/bi_development.png",
                                       children: [
                                         {
                                           name: "PBi Youth",
@@ -313,7 +332,7 @@ let original_data = {
                                           methods: ["interactive dashboard", "topic-based exploration", "multi-page navigation"],
                                           time: 10,
                                           type: "vis",
-                                          segment_image: "children.png",
+                                          segment_image: "segment_images/children.png",
                                           link: "https://peacerep.org/children-and-youth-database/",
                                         }]
                                     },
@@ -334,6 +353,7 @@ let original_data = {
                           methods: ["manual coding", "AI-assisted coding"],
                           time: 100,
                           type: "pax_local_code",
+                          segment_image: "segment_images/coding.png",
                           link: "https://www.peaceagreements.org/cms/documents/3924/PA_X_codebook_local_v8.pdf",
                           children: [
                             {
@@ -347,6 +367,7 @@ let original_data = {
                               methods: ["resolve coding questions", "review during coding", "include if in doubt"],
                               time: 20,
                               type: "pax_local_quality_control",
+                              segment_image: "segment_images/qc.png",
                               children: [
                                 {
                                   name: "PA-X Local",
@@ -359,6 +380,7 @@ let original_data = {
                                   methods: ["manual", "automatic"],
                                   time: 10,
                                   type: "pax_local_db",
+                                  segment_image: "segment_images/pax_local_db.png",
                                   link: "https://www.peaceagreements.org/agreements/lsearch/",
                                   children: [
                                     {
@@ -372,6 +394,7 @@ let original_data = {
                                       methods: ["d3", "git"],
                                       time: 50,
                                       type: "prog",
+                                      segment_image: "segment_images/programming.png",
                                       link: "https://github.com/peacerep/pax_local",
                                       children: [
                                         {
@@ -385,7 +408,7 @@ let original_data = {
                                           methods: ["interactive map", "spatial exploration"],
                                           time: 10,
                                           type: "vis",
-                                          segment_image: "local.png",
+                                          segment_image: "segment_images/local.png",
                                           link: "https://www.peaceagreements.org/visualizations/local-agreements/"
                                         },
                                       ],
@@ -407,6 +430,7 @@ let original_data = {
                           methods: ["manual coding", "named entity recognition", "dictionary matching"],
                           time: 100,
                           type: "paax_code",
+                          segment_image: "segment_images/coding.png",
                           children: [
                             {
                               name: "Quality Control",
@@ -419,6 +443,7 @@ let original_data = {
                               methods: ["manual verification", "agreement-level review"],
                               time: 20,
                               type: "paax_quality_control",
+                              segment_image: "segment_images/qc.png",
                               children: [
                                 {
                                   name: "PAA-X",
@@ -443,6 +468,8 @@ let original_data = {
                                       methods: ["Vue", "git", "interface design"], //Ben's network library (cannot remember name)
                                       time: 50,
                                       type: "prog",
+                                      segment_image: "segment_images/programming.png",
+                                      link: "https://github.com/peacerep/actor-network",
                                       children: [
                                         {
                                           name: "Actors-Network",
@@ -455,6 +482,7 @@ let original_data = {
                                           methods: ["interactive network", "actor exploration"],
                                           time: 10,
                                           type: "vis",
+                                          segment_image: "segment_images/actor_network.png",
                                           link: "https://www.peaceagreements.org/visualizations/actor-networks/"
                                         },
                                       ],
@@ -470,6 +498,7 @@ let original_data = {
                                       methods: ["d3", "git", "scrollytelling development"],
                                       time: 50,
                                       type: "prog",
+                                      segment_image: "segment_images/programming.png",
                                       link: "https://github.com/tvancisin/peace_scroll", //can remove if dont want to share
                                       children: [
                                         {
@@ -483,6 +512,7 @@ let original_data = {
                                           methods: ["scrollytelling", "interactive visualization", "narrative sequencing"],
                                           time: 10,
                                           type: "vis",
+                                          segment_image: "segment_images/3rd_scroll.png",
                                           link: "https://www.peaceagreements.org/visualizations/third-party-scroll/"
                                         },
                                       ],
@@ -498,6 +528,7 @@ let original_data = {
                                       methods: ["Python", "streamlit", "git"],
                                       time: 50,
                                       type: "prog",
+                                      segment_image: "segment_images/programming.png",
                                       children: [
                                         {
                                           name: "Network",
@@ -525,6 +556,8 @@ let original_data = {
                                       methods: ["PowerBi", "Python", "iterative design"],
                                       time: 50,
                                       type: "prog",
+                                      segment_image: "segment_images/programming.png",
+                                      link: "https://github.com/peacerep/tracker_globe",
                                       children: [
                                         {
                                           name: "Tracker",
@@ -537,6 +570,7 @@ let original_data = {
                                           methods: ["interactive platform", "comparative exploration", "dashboards, timelines, networks, maps"],
                                           time: 50,
                                           type: "vis",
+                                          segment_image: "segment_images/tracker.png",
                                           link: "https://www.peaceagreements.org/tracker/"
                                         },
                                       ],
@@ -559,6 +593,8 @@ let original_data = {
                           methods: ["d3", "git"],
                           time: 50,
                           type: "prog",
+                          segment_image: "segment_images/programming.png",
+                          link: "https://github.com/peacerep/v7_messy_timeline",
                           children: [
                             {
                               name: "Messy Timeline",
@@ -571,6 +607,7 @@ let original_data = {
                               methods: ["interactive timeline", "temporal exploration"],
                               time: 10,
                               type: "vis",
+                              segment_image: "segment_images/messy.png",
                               link: "https://www.peaceagreements.org/visualizations/messy-peace-processes/"
                             },
                           ],
@@ -586,6 +623,8 @@ let original_data = {
                           methods: ["d3", "git"],
                           time: 50,
                           type: "prog",
+                          segment_image: "segment_images/programming.png",
+                          link: "https://github.com/peacerep/pax-map",
                           children: [
                             {
                               name: "Time & Space",
@@ -598,7 +637,8 @@ let original_data = {
                               methods: ["interactive visualization", "map-based exploration", "temporal exploration"],
                               time: 10,
                               type: "vis",
-                              link: "http://peaceagreements.org/visualizations/agreements-process-map/"
+                              segment_image: "segment_images/patels.png",
+                              link: "https://www.peaceagreements.org/visualizations/agreements-process-map/"
                             },
                           ],
                         },
@@ -613,6 +653,8 @@ let original_data = {
                           methods: ["d3", "git"],
                           time: 50,
                           type: "prog",
+                          segment_image: "segment_images/programming.png",
+                          link: "https://github.com/peacerep/compare-sequences",
                           children: [
                             {
                               name: "Sequence Comparison",
@@ -625,6 +667,7 @@ let original_data = {
                               methods: ["interactive visualization", "sequence comparison", "comparative exploration"],
                               time: 50,
                               type: "vis",
+                              segment_image: "segment_images/sequence.png",
                               link: "https://www.peaceagreements.org/visualizations/compare-processes/"
                             },
                           ],
@@ -640,6 +683,8 @@ let original_data = {
                           methods: ["d3", "git"],
                           time: 50,
                           type: "prog_overview",
+                          segment_image: "segment_images/programming.png",
+                          link: "https://github.com/peacerep/hierarchy",
                           children: [
                             {
                               name: "Data Overview",
@@ -652,6 +697,7 @@ let original_data = {
                               methods: ["interactive visualization", "data overview", "exploratory navigation"],
                               time: 50,
                               type: "vis",
+                              segment_image: "segment_images/hierarchy.png",
                               link: "https://www.peaceagreements.org/visualizations/data-overview-visualization/"
                             },
                           ],
@@ -667,6 +713,7 @@ let original_data = {
                           methods: ["Inkscape"],
                           time: 10,
                           type: "pdf",
+                          segment_image: "segment_images/infographics.png",
                           link: "https://peacerep.org/digital-resources/infographics/",
                         },
                       ],

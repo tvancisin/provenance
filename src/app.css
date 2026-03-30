@@ -1,8 +1,13 @@
-html, body {
-	margin: 0;
-	padding: 0;
-	height: 100%;
-	overflow: hidden;
-	background-color: #001C23;
-	font-family: "Montserrat";
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
+  background-color: #001c23;
+  font-family: "Montserrat";
+}
+
+:root {
+  color-scheme: dark;
 }
