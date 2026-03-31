@@ -708,7 +708,7 @@
 
   .intro-overlay {
     position: absolute;
-    width: 50%;
+    width: 40%;
     right: 10px;
     z-index: 30;
     display: flex;
