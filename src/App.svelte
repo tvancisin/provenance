@@ -4,6 +4,7 @@
   import ForegroundTree from "./lib/ForegroundTree.svelte";
   import Legend from "./lib/Legend.svelte";
   import TreeLegend from "./lib/TreeLegend.svelte";
+  import PeopleLegend from "./lib/PeopleLegend.svelte";
   import Details from "./lib/Details.svelte";
   import {
     data,
@@ -537,9 +538,11 @@
         </p>
         <TreeLegend {currentLevelDown} />
         <br />
-        <p>There are two types of nodes:</p>
+        <p class="intro-text">There are two types of nodes:</p>
         <Legend {currentLevelDown} />
-        <p>
+        <p class="intro-text">The size and the number of circles surronding the main node indicate the nubmer of people involved:</p>
+        <PeopleLegend />
+        <p class="intro-text">
           Use arrow buttons to navigate through the workflow or the star button
           to reveal everything at once:
         </p>
@@ -707,16 +710,16 @@
     position: absolute;
     width: 50%;
     right: 10px;
-    /* inset: 0; */
     z-index: 30;
     display: flex;
     padding: 24px;
-    /* background: rgba(0, 28, 35, 0.55);
-    backdrop-filter: blur(6px); */
   }
 
   .intro-card {
     /* width: min(640px, calc(100vw - 48px)); */
+    height: 80vh;
+    max-height: 80vh;
+    overflow-y: auto;
     padding: 28px 32px;
     border: solid 1px rgba(255, 255, 255, 0.2);
     border-radius: 5px;
@@ -728,7 +731,7 @@
   .intro-text {
     margin: 0 0 20px;
     color: rgba(255, 255, 255, 0.92);
-    font-size: 16px;
+    font-size: 14px;
   }
 
   .intro-button {
