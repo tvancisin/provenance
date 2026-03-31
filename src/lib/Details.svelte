@@ -7,7 +7,7 @@
   // half height for conflict, negotiation, and agreement segment
   const HALF_HEIGHT_SEGMENT_COUNT = 3;
   // how much segment expands on click
-  const SEGMENT_EXPAND_DELTA = 200;
+  const SEGMENT_EXPAND_DELTA = 250;
   // one lane each: process, time, expertise, methods, errors, text
   const SEGMENT_LANE_COUNT = 6;
   const SEGMENT_SVG_PADDING_X = 8;
@@ -19,7 +19,11 @@
   const WARN_ICON_HREF = `${import.meta.env.BASE_URL}erro.svg`;
 
   function isBottomSegment(index, totalCount) {
-    return index >= Math.max(0, totalCount - HALF_HEIGHT_SEGMENT_COUNT - 1);
+    if (fullChain.length <= 10) {
+      return index === totalCount;
+    } else {
+      return index >= Math.max(0, totalCount - HALF_HEIGHT_SEGMENT_COUNT - 1);
+    }
   }
 
   function handleSegmentClick(event, segmentIndex) {
@@ -179,6 +183,32 @@
     if (Array.isArray(value)) return value.length;
     const count = Number(value);
     return Number.isFinite(count) ? Math.max(0, Math.floor(count)) : 0;
+  }
+  $: console.log(fullChain);
+
+  let tx = 0;
+  let ty = 0;
+  let isHovering = false;
+
+  function handleMove(e) {
+    const rect = e.currentTarget.getBoundingClientRect();
+
+    const x = (e.clientX - rect.left) / rect.width; // 0 → 1
+    const y = (e.clientY - rect.top) / rect.height; // 0 → 1
+
+    // map to range (-50 → 50) for panning
+    tx = (x - 0.5) * 100;
+    ty = (y - 0.5) * 100;
+  }
+
+  function handleEnter() {
+    isHovering = true;
+  }
+
+  function handleLeave() {
+    isHovering = false;
+    tx = 0;
+    ty = 0;
   }
 </script>
 
@@ -556,7 +586,6 @@
           class="segment-expanded-content"
           style="height: {SEGMENT_EXPAND_DELTA}px; display: flex; flex-direction: row; width: 100%; overflow: hidden;"
         >
-          <!-- Textual part (2/3 width) -->
           <div
             style="flex: 1; padding: 8px 12px 8px 0; border-right: 1.5px solid #ccc; min-width: 0; overflow-wrap: break-word; overflow-y: auto; max-height: 100%;"
           >
@@ -588,21 +617,25 @@
               {d.data?.segment_text ?? ""}
             {/if}
           </div>
-          <!-- Image part (1/3 width) -->
+
           <div
-            style="flex: 1; display: flex; align-items: center; justify-content: center; min-width: 0; padding: 8px 0 8px 12px; overflow: hidden; max-height: 100%;"
+            style="flex: 1; display: flex; align-items: center; justify-content: center; min-width: 0; padding: 8px 0 8px 12px;max-height: 100%;"
           >
             {#if d.data?.segment_image}
-<a href={d.data.link} target="_blank" style="display: flex; max-height: 100%; overflow: hidden;">
-  <img
-    src={d.data.segment_image}
-    alt="Segment visual"
-    class="segment-image"
-    style="max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 4px;"
-  />
-</a>
+              <a
+                href={d.data.link}
+                target="_blank"
+                style="display: flex; max-height: 100%;"
+              >
+                <img
+                  src={d.data.segment_image}
+                  alt="Segment visual"
+                  class="segment-image"
+                  style="max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 4px;"
+                />
+              </a>
             {:else}
-              <span style="color: #aaa; font-size: 0.95em;">No image</span>
+              <span style="color: #aaa; font-size: 0.95em;">Pending</span>
             {/if}
           </div>
         </div>
@@ -712,5 +745,19 @@
     min-width: 0;
   }
 
-  
+  .segment-image {
+    transition:
+      transform 0.25s ease,
+      box-shadow 0.25s ease;
+    position: relative;
+    z-index: 1;
+    transform-origin: center;
+  }
+
+  .segment-image:hover {
+    transform: scale(2);
+    z-index: 9999;
+    position: relative;
+    transform-origin: center; /* try also: top left / right etc */
+  }
 </style>

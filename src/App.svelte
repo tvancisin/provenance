@@ -3,6 +3,7 @@
   import BackgroundTree from "./lib/BackgroundTree.svelte";
   import ForegroundTree from "./lib/ForegroundTree.svelte";
   import Legend from "./lib/Legend.svelte";
+  import TreeLegend from "./lib/TreeLegend.svelte";
   import Details from "./lib/Details.svelte";
   import {
     data,
@@ -55,6 +56,7 @@
   let linksDown = [];
   let ucdpNodes = [];
   let hasStartedExploring = false;
+  let showIntro = true;
   let innerWidth = 0;
   let details_width = 1;
 
@@ -500,7 +502,7 @@
 
   function startExploringHandler() {
     hasStartedExploring = true;
-
+    showIntro = false;
     if (workflowStateIndex === 0 && workflowStates.length > 1) {
       applyWorkflowState(1);
     }
@@ -523,16 +525,21 @@
   bind:clientHeight={height}
 >
   <!-- intro screen -->
-  {#if !hasStartedExploring}
+  {#if showIntro}
     <div class="intro-overlay">
       <div class="intro-card">
         <p class="intro-text">
           This visualization shows processes that take place from the point of
-          conflict, all the way to the development of peacetech tools.
+          armed conflicts, all the way to conducting peacebuilding research and
+          the development of PeaceTech tools aimed to support this research in
+          novel ways. The variation in the tree colors indicate the following
+          process categories:
         </p>
-        <p
-          style="font-size: 14px; color: rgba(255, 255, 255, 0.8); margin: 20px 20px 20px;"
-        >
+        <TreeLegend {currentLevelDown} />
+        <br />
+        <p>There are two types of nodes:</p>
+        <Legend {currentLevelDown} />
+        <p>
           Use arrow buttons to navigate through the workflow or the star button
           to reveal everything at once:
         </p>
@@ -571,6 +578,12 @@
         </button>
       </div>
     </div>
+  {/if}
+
+  {#if !showIntro}
+    <button class="info-button" title="Show info" on:click={() => showIntro = true}>
+      <i class="fa fa-info-circle" aria-hidden="true"></i>
+    </button>
   {/if}
 
   <!-- tooltip for node hover -->
@@ -613,7 +626,6 @@
             {rootUp}
           />
         </g>
-        <Legend {currentLevelDown} />
       </svg>
     {/if}
     {#if showStepDescription}
@@ -693,18 +705,18 @@
 
   .intro-overlay {
     position: absolute;
-    inset: 0;
+    width: 50%;
+    right: 10px;
+    /* inset: 0; */
     z-index: 30;
     display: flex;
-    align-items: center;
-    justify-content: center;
     padding: 24px;
-    background: rgba(0, 28, 35, 0.55);
-    backdrop-filter: blur(6px);
+    /* background: rgba(0, 28, 35, 0.55);
+    backdrop-filter: blur(6px); */
   }
 
   .intro-card {
-    width: min(640px, calc(100vw - 48px));
+    /* width: min(640px, calc(100vw - 48px)); */
     padding: 28px 32px;
     border: solid 1px rgba(255, 255, 255, 0.2);
     border-radius: 5px;
@@ -809,5 +821,28 @@
   button:disabled {
     opacity: 0.6;
     cursor: not-allowed;
+  }
+
+  .info-button {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    /* z-index: 0; */
+    background: rgba(0,0,0,0.7);
+    color: #fff;
+    border: none;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5em;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    transition: background 0.2s;
+  }
+  .info-button:hover {
+    background: #005266;
   }
 </style>

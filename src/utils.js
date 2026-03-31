@@ -11,6 +11,8 @@ let original_data = {
   methods: ["web scraping", "news monitoring", "social media", "word of mouth", "email", "official websites"],
   time: 10,
   type: "pax_collect",
+  segment_image: "segment_images/collection.png",
+  link: "https://www.peaceagreements.org/agreements/search/",
   children: [
     {
       name: "Translate",
@@ -92,6 +94,7 @@ let original_data = {
                           methods: ["quantitative", "qualitative", "mixed"],
                           time: 90,
                           type: "research",
+                          segment_image: "segment_images/research.png",
                           link: "https://peacerep.org/publications-database/",
                           children: [
                             {
@@ -105,6 +108,7 @@ let original_data = {
                               methods: ["quantitative research", "qualitative research", "mixed methods"],
                               time: 30,
                               type: "data_report",
+                              segment_image: "segment_images/report.png",
                               link: "https://peacerep.org/publication/peace-agreements-in-2024/", /*PA-X data report for 2024 (will be 2025 - udpate here with new version)*/
                             },
                             {
@@ -118,6 +122,7 @@ let original_data = {
                               methods: ["quantitative research", "qualitative research", "mixed methods"],
                               time: 30,
                               type: "book",
+                              segment_image: "segment_images/book.png",
                               link: "https://peacerep.org/publication/peacetech-digital-transformation-to-end-wars/", /*since book putting Christine's as PA-X fed into it*/
                             },
                             {
@@ -131,6 +136,7 @@ let original_data = {
                               methods: ["quantitative research", "qualitative research", "mixed methods"],
                               time: 30,
                               type: "journal",
+                              segment_image: "segment_images/journal.png",
                               link: "https://peacerep.org/publication/introducing-pa-x-a-new-peace-agreement-database-and-dataset/" /*put link to introducing PA-X */
                             },
                             {
@@ -144,6 +150,7 @@ let original_data = {
                               methods: ["quantitative research", "qualitative research", "mixed methods"],
                               time: 30,
                               type: "blog",
+                              segment_image: "segment_images/blog.png",
                               link: "https://peacerep.org/category/blog/" /*put link to all blogs on peacerep but could do specific pax ones? */
                             },
                             {
@@ -156,6 +163,8 @@ let original_data = {
                               errors: ["structure", "argument", "writing"],
                               methods: ["quantitative", "qualitative", "mixed"],
                               time: 30,
+                              segment_image: "segment_images/conference.png",
+                              link: "https://peacerep.org/publication/visualizing-peace-and-transition-process-trajectories/", /*link to conference publications on peacerep but could do specific ones? */
                               type: "conference",
                             },
                           ],
@@ -541,6 +550,7 @@ let original_data = {
                                           methods: ["network visualization", "relationship exploration", "pattern identification"],
                                           time: 10,
                                           type: "vis",
+                                          segment_image: "segment_images/network.png",
                                           link: "https://peacerep.org/signatories-network-analysis/",
                                         },
                                       ],
@@ -733,7 +743,8 @@ let original_data = {
       name: "agreement",
       number: 721,
       continent: "Africa",
-      children: [{ name: "negotiation", children: [{ name: "conflict" }] }],
+      tooltip_name: "Agreement",
+      children: [{ name: "negotiation", tooltip_name: "Negotiation", children: [{ name: "conflict", tooltip_name: "Conflict" }] }],
     })),
     // Europe & Eurasia (12)
     ...Array.from({ length: 12 }, () => ({
