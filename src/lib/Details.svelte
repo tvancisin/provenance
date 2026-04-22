@@ -434,7 +434,7 @@
       0,
       currentSegmentHeight - LANE_CONTENT_PADDING * 2,
     )}
-    {@const textFontSize = Math.max(8, Math.min(12, laneWidth * 0.14))}
+    {@const textFontSize = Math.max(8, Math.min(12, laneWidth * 0.13))}
     {@const textLineHeight = textFontSize * 1.2}
     {@const maxTextLines = Math.max(
       1,
@@ -592,22 +592,22 @@
             {#if d.data}
               {#if d.data.tooltip_name && d.data.ppl && d.data.expertise && d.data.methods && d.data.errors && d.data.time}
                 <span>
-                  The {d.data.tooltip_name.toLowerCase()} is done by {d.data
-                    .ppl}
-                  {d.data.ppl == 1 ? "person" : "people"} with expertise in {Array.isArray(
-                    d.data.expertise,
-                  )
+                  {d.data.tooltip_name} involves {d.data.ppl}
+                  {d.data.ppl == 1 ? "person" : "people"}
+                  with expertise in {Array.isArray(d.data.expertise)
                     ? d.data.expertise
                         .join(", ")
                         .replace(/, ([^,]*)$/, " and $1")
-                    : d.data.expertise}. Methods used during this step are {Array.isArray(
+                    : d.data.expertise}. It typically uses {Array.isArray(
                     d.data.methods,
                   )
                     ? d.data.methods.join(", ").replace(/, ([^,]*)$/, " or $1")
-                    : d.data.methods}. Potential mistakes that could happen
-                  during this step are {Array.isArray(d.data.errors)
+                    : d.data.methods}. Common challenges include {Array.isArray(
+                    d.data.errors,
+                  )
                     ? d.data.errors.join(", ").replace(/, ([^,]*)$/, " and $1")
-                    : d.data.errors}. Overall, this process takes {d.data.time}
+                    : d.data.errors}. This step usually takes around {d.data
+                    .time}
                   {d.data.time == 1 ? "hour" : "hours"}.
                 </span>
               {:else}

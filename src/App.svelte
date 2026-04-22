@@ -529,28 +529,43 @@
   {#if showIntro}
     <div class="intro-overlay">
       <div class="intro-card">
-        <h2 style="margin-top: 10px;">PROVENANCE <br> of PEACEBUILDING</h2>
+        <h2 style="margin-top: 10px;">PROVENANCE <br /> of PEACEBUILDING</h2>
         <p class="intro-text">
-          This visualization provides a transparent view of the processes that
-          take place from the point of armed conflicts, all the way to
-          conducting peacebuilding research and the development of PeaceTech
-          tools aimed to support this research.
+          This visualization explores the provenance of peacebuilding by making
+          visible the processes and people involved—from the occurrence of armed
+          conflicts, through the creation and development of the <a
+            href="https://www.peaceagreements.org/agreements/search/?search_type=basic-search&show_timeline=0&match_any_issues=True"
+            target="_blank" style="color: aliceblue;">PA-X database</a
+          >, to its use in research at
+          <a
+            href="https://peacerep.org"
+            target="_blank"
+            style="color: aliceblue;">PeaceRep</a
+          >
+          and the development of PeaceTech tools.
           <br />
           <br />
-          <em>The variation in the tree colors indicate the following process categories</em>:
+          <em
+            >The variation in the tree colors indicate the following process
+            categories</em
+          >:
         </p>
         <TreeLegend {currentLevelDown} />
         <br />
         <p class="intro-text"><em>There are two types of nodes</em>:</p>
         <Legend {currentLevelDown} />
         <p class="intro-text">
-          <em>The size and the number of circles surronding the main node indicate
-          the nubmer of people involved</em>:
+          <em
+            >The size and the number of circles surronding the main node
+            indicate the nubmer of people involved</em
+          >:
         </p>
         <PeopleLegend />
         <p class="intro-text">
-          <em>Use arrow buttons to navigate through the workflow or the star button
-          to reveal everything at once</em>:
+          <em
+            >Use arrow buttons to navigate through the workflow or the star
+            button to reveal everything at once</em
+          >:
         </p>
         <div
           class="controls_intro"
@@ -731,10 +746,10 @@
   }
 
   .intro-text {
+    font-size: 13px;
     text-align: left;
     margin: 15px 0 15px;
     color: rgba(255, 255, 255, 0.92);
-    font-size: 14px;
   }
 
   .intro-button {

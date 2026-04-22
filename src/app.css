@@ -6,6 +6,7 @@ body {
   overflow: hidden;
   background-color: #001c23;
   font-family: "Montserrat";
+  user-select: none;
 }
 
 :root {

@@ -833,7 +833,7 @@ export let steps = {
       step_id: "1",
       type: "conflicts",
       description:
-        `First real life events captured in some way by the PA-X Database are 
+        `First real-life events captured in some way by the PA-X Database are 
         armed conflicts. As you can see, there is a different number of conflicts 
         (and the subsequent peace processes) taking place in different parts of the world.`,
     },
@@ -880,14 +880,14 @@ export let steps = {
       type: "pax_quality_control",
       description:
         `The tagged text goes through quality control to ensure 
-        the coding is consistent with defintions of the topics across versions.`,
+        the coding is consistent with defintions of the topics.`,
     },
     {
       step_id: "8",
       type: "pax_database",
       description:
         `Once the data is approved and quality checks are resolved, the data is published 
-        in the database. On average, 50 new agreements are added annually.`,
+        in the PA-X database. On average, 50 new agreements are added annually.`,
     },
     {
       step_id: "9",
@@ -907,15 +907,15 @@ export let steps = {
       type: "sub_databases",
       description:
         `As in the case of the main PA-X database, once the data is approved, it is 
-        published in PA-X Gender, PA-X Local, PA-X Children & Youth, 
-        and PAA-X Third Parties databases.`,
+        published in <strong>PA-X Gender</strong>, <strong>PA-X Local</strong>, <strong>PA-X Children & Youth</strong>, 
+        and <strong>PAA-X Third Parties</strong> databases.`,
     },
     {
       step_id: "12",
       type: "research",
-      description: `Information gathered in the core PA-X database and sub-databases, coupled
-      by the ability to query this information in novel and very flexible ways, 
-      subsequently inform peacebuilding research.`,
+      description: `Information gathered in these databases, coupled with the ability 
+      to query it in highly flexible ways, subsequently informs novel peacebuilding research 
+      at PeaceRep.`,
     },
     {
       step_id: "13",
@@ -928,7 +928,7 @@ export let steps = {
       step_id: "14",
       type: "development",
       description:
-        `The machine-processable form of the information gathered in the sub-databases
+        `The machine-processable form of the information gathered in the databases
         also gives rise to the development of various visualizations and digital resources (PeaceTech).`,
     },
     {
@@ -957,14 +957,13 @@ export let steps = {
       type: "infographics",
       description:
         `PA-X is also used for the development of static infographics that provide easy entry 
-        points to the data and research findings and all these PeaceTech tools are then used 
-        to inform research into peacemaking.`,
+        points to the data and research findings.`,
     },
     {
       step_id: "19",
       type: "ucdp/acled",
       description:
-        `What's important to emphasize is that the PA-X database is also used in conjunction 
+        `It's important to emphasize is that the PA-X database is also used in conjunction 
         with UCDP and ACLED data to provide a more complete picture of conflict and peace processes.`,
     },
   ],
