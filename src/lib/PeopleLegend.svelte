@@ -34,7 +34,7 @@
 </script>
 
 <svg height="70" width="200">
-  <g transform={`translate(${60}, ${20})`}>
+  <g transform={`translate(${60}, ${35})`}>
     <!-- main circle -->
     <circle
       cx="0"

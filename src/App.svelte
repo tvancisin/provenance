@@ -529,24 +529,33 @@
   {#if showIntro}
     <div class="intro-overlay">
       <div class="intro-card">
+        <h2 style="margin-top: 10px;">PROVENANCE <br> of PEACEBUILDING</h2>
         <p class="intro-text">
-          This visualization shows processes that take place from the point of
-          armed conflicts, all the way to conducting peacebuilding research and
-          the development of PeaceTech tools aimed to support this research in
-          novel ways. The variation in the tree colors indicate the following
-          process categories:
+          This visualization provides a transparent view of the processes that
+          take place from the point of armed conflicts, all the way to
+          conducting peacebuilding research and the development of PeaceTech
+          tools aimed to support this research.
+          <br />
+          <br />
+          <em>The variation in the tree colors indicate the following process categories</em>:
         </p>
         <TreeLegend {currentLevelDown} />
         <br />
-        <p class="intro-text">There are two types of nodes:</p>
+        <p class="intro-text"><em>There are two types of nodes</em>:</p>
         <Legend {currentLevelDown} />
-        <p class="intro-text">The size and the number of circles surronding the main node indicate the nubmer of people involved:</p>
+        <p class="intro-text">
+          <em>The size and the number of circles surronding the main node indicate
+          the nubmer of people involved</em>:
+        </p>
         <PeopleLegend />
         <p class="intro-text">
-          Use arrow buttons to navigate through the workflow or the star button
-          to reveal everything at once:
+          <em>Use arrow buttons to navigate through the workflow or the star button
+          to reveal everything at once</em>:
         </p>
-        <div class="controls_intro">
+        <div
+          class="controls_intro"
+          style="margin-top: 30px; margin-bottom: 30px;"
+        >
           <button
             id="back"
             type="button"
@@ -584,7 +593,11 @@
   {/if}
 
   {#if !showIntro}
-    <button class="info-button" title="Show info" on:click={() => showIntro = true}>
+    <button
+      class="info-button"
+      title="Show info"
+      on:click={() => (showIntro = true)}
+    >
       <i class="fa fa-info-circle" aria-hidden="true"></i>
     </button>
   {/if}
@@ -633,6 +646,9 @@
     {/if}
     {#if showStepDescription}
       <div id="step_description">
+        <div id="step_description_text">
+          {@html currentStepDescription}
+        </div>
         <div class="controls">
           <button
             id="back"
@@ -665,9 +681,6 @@
             <i class="fa fa-star" aria-hidden="true"></i>
           </button>
         </div>
-        <div id="step_description_text">
-          {@html currentStepDescription}
-        </div>
       </div>
     {/if}
   </div>
@@ -696,16 +709,6 @@
     white-space: nowrap;
   }
 
-  h1 {
-    position: absolute;
-    top: 20px;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    color: white;
-    z-index: 10;
-    margin: 0;
-  }
-
   .intro-overlay {
     position: absolute;
     width: 40%;
@@ -716,20 +719,20 @@
   }
 
   .intro-card {
-    /* width: min(640px, calc(100vw - 48px)); */
-    height: 80vh;
-    max-height: 80vh;
+    height: 85vh;
+    max-height: 85vh;
     overflow-y: auto;
     padding: 28px 32px;
     border: solid 1px rgba(255, 255, 255, 0.2);
     border-radius: 5px;
-    background: rgba(0, 28, 35, 0.94);
+    background: rgba(31, 31, 31, 0.94);
     box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
     text-align: center;
   }
 
   .intro-text {
-    margin: 0 0 20px;
+    text-align: left;
+    margin: 15px 0 15px;
     color: rgba(255, 255, 255, 0.92);
     font-size: 14px;
   }
@@ -754,8 +757,8 @@
   #step_description {
     position: absolute;
     top: 55%;
-    left: 5px;
-    width: 30%;
+    left: 15px;
+    width: 25%;
     display: flex;
     flex-direction: column;
     gap: 14px;
@@ -831,7 +834,7 @@
     top: 10px;
     right: 10px;
     /* z-index: 0; */
-    background: rgba(0,0,0,0.7);
+    background: rgba(0, 0, 0, 0.7);
     color: #fff;
     border: none;
     border-radius: 50%;
@@ -842,7 +845,7 @@
     justify-content: center;
     font-size: 1.5em;
     cursor: pointer;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
     transition: background 0.2s;
   }
   .info-button:hover {

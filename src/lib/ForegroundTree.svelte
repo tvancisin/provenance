@@ -60,8 +60,8 @@
   const upwardLinkStrokeByBranchType = {
     trunk: "#007a99",
     upper_trunk: "#007a99",
-    uppest_trunk: "#1ad1ff",
-    default: "#1ad1ff",
+    uppest_trunk: "#D4AA7D",
+    default: "#D4AA7D",
   };
   const upwardBackgroundStrokeByBranchType = {
     trunk: "#003d4d",
