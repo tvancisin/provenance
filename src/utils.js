@@ -54,7 +54,7 @@ let original_data = {
               time: 90,
               type: "pax_code",
               segment_image: "segment_images/coding.png",
-              link: "https://www.peaceagreements.org/cms/documents/4196/PA_X_codebook_v9.pdf",
+              link: "https://www.peaceagreements.org/cms/documents/3956/PA_X_codebook_v10.pdf",
               children: [
                 {
                   name: "Quality Control",

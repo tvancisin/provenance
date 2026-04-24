@@ -231,13 +231,13 @@
       </button>
       <div
         class="labels"
-        style="position: absolute; bottom: 2px; display: flex; flex-direction: row;   width: 100%; justify-content: space-between; align-items: flex-end;"
+        style="position: absolute; bottom: 5px; display: flex; flex-direction: row; width: 100%; justify-content: space-between; align-items: flex-end;"
       >
-        <span>Process</span>
+        <span>People</span>
         <span>Expertise</span>
         <span>Time</span>
         <span>Method</span>
-        <span>Errors</span>
+        <span>Challenges</span>
         <span>Description</span>
       </div>
     </div>
@@ -736,11 +736,12 @@
   }
 
   .labels span {
-    color: gray;
+    color: white;
+    font-style: italic;
     text-align: center;
     display: flex;
     flex-direction: column;
-    font-size: 10px;
+    font-size: 11px;
     flex: 1;
     min-width: 0;
   }

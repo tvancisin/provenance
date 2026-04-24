@@ -530,12 +530,17 @@
     <div class="intro-overlay">
       <div class="intro-card">
         <h2 style="margin-top: 10px;">PROVENANCE <br /> of PEACEBUILDING</h2>
+        <p class="intro-text" style="margin-top: 20px; margin-bottom: 0;">
+          <strong>Visualization Development</strong>: Tomas Vancisin<br />
+          <strong>Data Engineering</strong>: Niamh Henry
+        </p>
         <p class="intro-text">
           This visualization explores the provenance of peacebuilding by making
           visible the processes and people involved—from the occurrence of armed
           conflicts, through the creation and development of the <a
             href="https://www.peaceagreements.org/agreements/search/?search_type=basic-search&show_timeline=0&match_any_issues=True"
-            target="_blank" style="color: aliceblue;">PA-X database</a
+            target="_blank"
+            style="color: aliceblue;">PA-X database</a
           >, to its use in research at
           <a
             href="https://peacerep.org"
