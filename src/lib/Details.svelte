@@ -17,6 +17,7 @@
   const COG_ICON_HREF = `${import.meta.env.BASE_URL}cog.svg`;
   const HAT_ICON_HREF = `${import.meta.env.BASE_URL}hat.svg`;
   const WARN_ICON_HREF = `${import.meta.env.BASE_URL}erro.svg`;
+  const CONT_ICON_HREF = `${import.meta.env.BASE_URL}cont.svg`;
 
   function isBottomSegment(index, totalCount) {
     if (fullChain.length <= 10) {
@@ -500,18 +501,33 @@
               />
             {/each}
           </g>
-          <g style="pointer-events: all;">
-            <title>{timeValue} {timeValue === 1 ? ' hour' : ' hours'}</title>
-            <rect
-              x={timeLaneX}
-              y={timeLaneY}
-              width={timeFillWidth}
-              height={timeLaneHeight}
-              rx="2"
-              ry="2"
-              fill="#CC8500"
-            />
-          </g>
+          {#if d.data?.time === 'continuous'}
+            {@const contIconSize = Math.min(timeLaneWidth, timeLaneHeight) / 2}
+            <g style="pointer-events: all;">
+              <title>continuous process</title>
+              <image
+                href={CONT_ICON_HREF}
+                x={timeLaneX + (timeLaneWidth - contIconSize) / 2}
+                y={timeLaneY + (timeLaneHeight - contIconSize) / 2}
+                width={contIconSize}
+                height={contIconSize}
+                preserveAspectRatio="xMidYMid meet"
+              />
+            </g>
+          {:else}
+            <g style="pointer-events: all;">
+              <title>{timeValue} {timeValue === 1 ? 'hour' : 'hours'}</title>
+              <rect
+                x={timeLaneX}
+                y={timeLaneY}
+                width={timeFillWidth}
+                height={timeLaneHeight}
+                rx="2"
+                ry="2"
+                fill="#CC8500"
+              />
+            </g>
+          {/if}
           {#if methodsCount > 0 && methodsIconSize > 0}
             {#each Array.from({ length: methodsCount }, (_, methodIndex) => methodIndex) as methodIndex}
               {@const methodCol = Math.floor(methodIndex / 2)}
@@ -610,9 +626,7 @@
                     ? d.data.expertise
                         .join(", ")
                         .replace(/, ([^,]*)$/, " and $1")
-                    : d.data.expertise}</strong>. This step usually takes around <strong>{d.data
-                    .time}</strong>
-                  {d.data.time == 1 ? "hour" : "hours"}. It typically uses <strong>{Array.isArray(
+                    : d.data.expertise}</strong>. {#if d.data.time === 'continuous'}It is a continuous process.{:else}This step usually takes around <strong>{d.data.time}</strong> {d.data.time == 1 ? "hour" : "hours"}.{/if} It typically uses <strong>{Array.isArray(
                     d.data.methods,
                   )
                     ? d.data.methods.join(", ").replace(/, ([^,]*)$/, " or $1")

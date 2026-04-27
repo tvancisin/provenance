@@ -9,7 +9,7 @@ let original_data = {
   expertise: ["law", "international relations"],
   errors: ["missed agreements", "non-written agreements", "source bias", "source verification"],
   methods: ["web scraping", "news monitoring", "social media", "word of mouth", "email", "official websites"],
-  time: 10,
+  time: "continuous",
   type: "pax_collect",
   segment_image: "segment_images/collection.png",
   link: "https://www.peaceagreements.org/agreements/search/",
