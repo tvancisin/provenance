@@ -11,7 +11,7 @@
   // one lane each: process, time, expertise, methods, errors, text
   const SEGMENT_LANE_COUNT = 6;
   const SEGMENT_SVG_PADDING_X = 8;
-  const LANE_CONTENT_PADDING = 2;
+  const LANE_CONTENT_PADDING = 5;
   let expandedSegmentIndex = null;
 
   const COG_ICON_HREF = `${import.meta.env.BASE_URL}cog.svg`;
@@ -45,10 +45,7 @@
     return Math.max(max, ppl);
   }, 1);
 
-  $: maxTimeInChain = fullChain.reduce((max, node) => {
-    const time = numericTimeValue(node?.data?.time);
-    return Math.max(max, time);
-  }, 0);
+  const maxTimeInChain = 90;
 
   $: maxMethodsInChain = fullChain.reduce((max, node) => {
     const count = getMethodsCount(node?.data?.methods);
@@ -184,7 +181,6 @@
     const count = Number(value);
     return Number.isFinite(count) ? Math.max(0, Math.floor(count)) : 0;
   }
-  $: console.log(fullChain);
 
   let tx = 0;
   let ty = 0;
@@ -235,7 +231,7 @@
       >
         <span>People</span>
         <span>Expertise</span>
-        <span>Time</span>
+        <span>Time (approx.)</span>
         <span>Method</span>
         <span>Challenges</span>
         <span>Description</span>
@@ -483,7 +479,8 @@
           focusable="false"
           style="width: {details_width}px; height: {currentSegmentHeight}px;"
         >
-          <g transform="translate({circleCenterX}, {currentSegmentHeight / 2})">
+          <g transform="translate({circleCenterX}, {currentSegmentHeight / 2})" style="pointer-events: all;">
+            <title>{ppl} {ppl == 1 ? ' person' : ' people'}</title>
             <circle
               cx="0"
               cy="0"
@@ -503,58 +500,73 @@
               />
             {/each}
           </g>
-          <rect
-            x={timeLaneX}
-            y={timeLaneY}
-            width={timeFillWidth}
-            height={timeLaneHeight}
-            rx="2"
-            ry="2"
-            fill="#CC8500"
-          />
+          <g style="pointer-events: all;">
+            <title>{timeValue} {timeValue === 1 ? ' hour' : ' hours'}</title>
+            <rect
+              x={timeLaneX}
+              y={timeLaneY}
+              width={timeFillWidth}
+              height={timeLaneHeight}
+              rx="2"
+              ry="2"
+              fill="#CC8500"
+            />
+          </g>
           {#if methodsCount > 0 && methodsIconSize > 0}
             {#each Array.from({ length: methodsCount }, (_, methodIndex) => methodIndex) as methodIndex}
               {@const methodCol = Math.floor(methodIndex / 2)}
               {@const methodRow = methodIndex % 2}
-              <image
-                href={COG_ICON_HREF}
-                x={methodsLaneX + methodCol * (methodsIconSize + methodsColGap)}
-                y={methodsStartY +
-                  methodRow * (methodsIconSize + methodsRowGap)}
-                width={methodsIconSize}
-                height={methodsIconSize}
-                preserveAspectRatio="xMinYMin meet"
-              />
+              {@const methodLabel = Array.isArray(d.data.methods) ? d.data.methods[methodIndex] : ''}
+              <g style="pointer-events: all;">
+                <title>{methodLabel}</title>
+                <image
+                  href={COG_ICON_HREF}
+                  x={methodsLaneX + methodCol * (methodsIconSize + methodsColGap)}
+                  y={methodsStartY +
+                    methodRow * (methodsIconSize + methodsRowGap)}
+                  width={methodsIconSize}
+                  height={methodsIconSize}
+                  preserveAspectRatio="xMinYMin meet"
+                />
+              </g>
             {/each}
           {/if}
           {#if expertiseCount > 0 && expertiseIconSize > 0}
             {#each Array.from({ length: expertiseCount }, (_, expertiseIndex) => expertiseIndex) as expertiseIndex}
               {@const expertiseCol = Math.floor(expertiseIndex / 2)}
               {@const expertiseRow = expertiseIndex % 2}
-              <image
-                href={HAT_ICON_HREF}
-                x={expertiseLaneX +
-                  expertiseCol * (expertiseIconSize + expertiseColGap)}
-                y={expertiseStartY +
-                  expertiseRow * (expertiseIconSize + expertiseRowGap)}
-                width={expertiseIconSize}
-                height={expertiseIconSize}
-                preserveAspectRatio="xMinYMin meet"
-              />
+              {@const expertiseLabel = Array.isArray(d.data.expertise) ? d.data.expertise[expertiseIndex] : ''}
+              <g style="pointer-events: all;">
+                <title>{expertiseLabel}</title>
+                <image
+                  href={HAT_ICON_HREF}
+                  x={expertiseLaneX +
+                    expertiseCol * (expertiseIconSize + expertiseColGap)}
+                  y={expertiseStartY +
+                    expertiseRow * (expertiseIconSize + expertiseRowGap)}
+                  width={expertiseIconSize}
+                  height={expertiseIconSize}
+                  preserveAspectRatio="xMinYMin meet"
+                />
+              </g>
             {/each}
           {/if}
           {#if errorsCount > 0 && errorsIconSize > 0}
             {#each Array.from({ length: errorsCount }, (_, errorIndex) => errorIndex) as errorIndex}
               {@const errorCol = Math.floor(errorIndex / 2)}
               {@const errorRow = errorIndex % 2}
-              <image
-                href={WARN_ICON_HREF}
-                x={errorsLaneX + errorCol * (errorsIconSize + errorsColGap)}
-                y={errorsStartY + errorRow * (errorsIconSize + errorsRowGap)}
-                width={errorsIconSize}
-                height={errorsIconSize}
-                preserveAspectRatio="xMinYMin meet"
-              />
+              {@const errorLabel = Array.isArray(d.data.errors) ? d.data.errors[errorIndex] : ''}
+              <g style="pointer-events: all;">
+                <title>{errorLabel}</title>
+                <image
+                  href={WARN_ICON_HREF}
+                  x={errorsLaneX + errorCol * (errorsIconSize + errorsColGap)}
+                  y={errorsStartY + errorRow * (errorsIconSize + errorsRowGap)}
+                  width={errorsIconSize}
+                  height={errorsIconSize}
+                  preserveAspectRatio="xMinYMin meet"
+                />
+              </g>
             {/each}
           {/if}
           {#each tooltipLines as line, lineIndex}
@@ -592,23 +604,23 @@
             {#if d.data}
               {#if d.data.tooltip_name && d.data.ppl && d.data.expertise && d.data.methods && d.data.errors && d.data.time}
                 <span>
-                  {d.data.tooltip_name} involves {d.data.ppl}
+                  <strong>{d.data.tooltip_name}</strong> involves <strong>{d.data.ppl}</strong>
                   {d.data.ppl == 1 ? "person" : "people"}
-                  with expertise in {Array.isArray(d.data.expertise)
+                  with expertise in <strong>{Array.isArray(d.data.expertise)
                     ? d.data.expertise
                         .join(", ")
                         .replace(/, ([^,]*)$/, " and $1")
-                    : d.data.expertise}. It typically uses {Array.isArray(
+                    : d.data.expertise}</strong>. This step usually takes around <strong>{d.data
+                    .time}</strong>
+                  {d.data.time == 1 ? "hour" : "hours"}. It typically uses <strong>{Array.isArray(
                     d.data.methods,
                   )
                     ? d.data.methods.join(", ").replace(/, ([^,]*)$/, " or $1")
-                    : d.data.methods}. Common challenges include {Array.isArray(
+                    : d.data.methods}</strong>. Common challenges include <strong>{Array.isArray(
                     d.data.errors,
                   )
                     ? d.data.errors.join(", ").replace(/, ([^,]*)$/, " and $1")
-                    : d.data.errors}. This step usually takes around {d.data
-                    .time}
-                  {d.data.time == 1 ? "hour" : "hours"}.
+                    : d.data.errors}</strong>.
                 </span>
               {:else}
                 {d.data?.segment_text ?? ""}
@@ -691,7 +703,7 @@
     border-top: solid 1px rgba(106, 106, 106, 0.5);
     background-color: #002933;
     color: rgba(255, 255, 255, 0.92);
-    font-size: 12px;
+    font-size: 13px;
     line-height: 1.35;
     overflow: auto;
   }
