@@ -1,5 +1,6 @@
 <script>
   import { generateDiagonalProgPath, getUpwardLinkPath } from "../utils";
+  import { draw, fade } from "svelte/transition";
 
   export let nodesUp = [];
   export let linksUp = [];
@@ -141,6 +142,34 @@
   }
 
   let visibleLinksDown = [];
+  const DOWN_NODE_FADE_DURATION = 220;
+  const UP_NODE_DELAY_FACTOR = 0.45;
+
+  function downDrawDuration(len) {
+    return Math.max(520, Math.sqrt(len) * 72);
+  }
+
+  function upDrawDuration(len) {
+    return Math.max(420, Math.sqrt(len) * 58);
+  }
+
+  function approxDownLinkLength(link) {
+    const childX = link.x;
+    const childY = yCenter + link.y;
+    const parentX = link.parent.x;
+    const parentY = yCenter + link.parent.y;
+    // Cubic curve approximation: straight-line distance plus bend allowance.
+    return Math.hypot(parentX - childX, parentY - childY) * 1.25 + 25;
+  }
+
+  function approxUpLinkLength(link) {
+    const childX = link.x;
+    const childY = yCenter - link.y;
+    const parentX = link.parent.x;
+    const parentY = yCenter - link.parent.y;
+    // Includes elbow variants with a little extra bend allowance.
+    return Math.hypot(parentX - childX, parentY - childY) * 1.35 + 35;
+  }
 
   $: maxHeightDown = nodesDown.length
     ? Math.max(...nodesDown.map((d) => d.revealLevel))
@@ -170,6 +199,17 @@
     });
   }
 
+  $: currentDownThreshold = maxHeightDown - currentLevelDown;
+  $: downStepLinks = linksDown.filter((d) => {
+    if (!d.parent) return false;
+    return (
+      d.revealLevel === currentDownThreshold &&
+      d.parent.revealLevel >= currentDownThreshold - 1
+    );
+  });
+  // Reverse order for downward reveal: nodes first, then links.
+  $: downStepPathDelay = downStepLinks.length ? DOWN_NODE_FADE_DURATION : 0;
+
   $: firstNodeByLevelDown = new Map();
   $: {
     firstNodeByLevelDown.clear();
@@ -181,6 +221,14 @@
   }
 
   $: descendants = rootUp ? rootUp.descendants() : [];
+
+  $: upStepLinks =
+    currentHeightUp !== null
+      ? linksUp.filter((d) => d.parent && d.data.step === currentHeightUp)
+      : [];
+  $: upStepNodeDelay = upStepLinks.length
+    ? Math.max(...upStepLinks.map((d) => upDrawDuration(approxUpLinkLength(d))))
+    : 0;
 
   ///////////////////////////// connecting same type nodes
   // code connections
@@ -321,26 +369,91 @@
     const numRings = Math.ceil(ppl / dotsPerRing);
     return Math.max(6, numRings * dotSpacing + gap * 2); // padding of gap on each side
   }
+
+  // Reversed variants so draw() animates bottom-to-top (parent → child).
+  function getUpwardLinkPathReversed(link) {
+    const isResearch = link.data.name === "Research";
+    const isSpecialBranch =
+      (link.data.name === "d3" && link.parent.data.name === "PA-X") ||
+      link.data.name === "Tracker" ||
+      link.data.name === "Infographics";
+
+    const cx = link.x;
+    const cy = yCenter - link.y;           // child screen y (higher up)
+    const px = link.parent.x;
+    const py = yCenter - link.parent.y;    // parent screen y (lower)
+
+    if (isResearch || isSpecialBranch) {
+      const extraDown =
+        isSpecialBranch &&
+        (link.data.name === "Tracker" || link.data.name === "Infographics")
+          ? 20
+          : 0;
+      const offset =
+        Math.min(50, (yCenter - link.y - (yCenter - link.parent.y)) * 0.3) +
+        extraDown;
+      const control = offset * 0.3;
+      // Reversed elbow: start at parent, curve horizontally, then go straight up to child.
+      return `M${px},${py}
+              C${px},${py + control}
+               ${cx},${py + control}
+               ${cx},${py + offset}
+              L${cx},${cy}`;
+    }
+
+    // Reversed standard cubic bezier.
+    return `M${px},${py}
+            C${px},${py - 50}
+             ${cx},${py - 20}
+             ${cx},${cy}`;
+  }
+
+  function getDownwardLinkPath(link) {
+    const childX = link.x;
+    const childY = yCenter + link.y;
+    const parentX = link.parent.x;
+    const parentY = yCenter + link.parent.y;
+
+    // Always draw from lower on screen toward upper on screen.
+    const startIsChild = childY >= parentY;
+    const startX = startIsChild ? childX : parentX;
+    const startY = startIsChild ? childY : parentY;
+    const endX = startIsChild ? parentX : childX;
+    const endY = startIsChild ? parentY : childY;
+    const controlY = endY + 20;
+
+    return `M${startX},${startY}
+       C${startX},${controlY}
+        ${endX},${controlY}
+        ${endX},${endY}`;
+  }
 </script>
 
 <!-- downward gradual links -->
-{#each visibleLinksDown as d}
+{#each visibleLinksDown as d (`${d.parent.data.id}→${d.data.id}`)}
   <path
-    d={`M${d.x},${yCenter + d.y} 
-       C${d.x},${yCenter + d.parent.y + 20} 
-        ${d.parent.x},${yCenter + d.parent.y + 20} 
-        ${d.parent.x},${yCenter + d.parent.y}`}
+    d={getDownwardLinkPath(d)}
     fill="none"
     stroke={highlightedLinks.has(`${d.parent.data.id}→${d.data.id}`)
       ? highlightedStroke
       : nonHighlightedPathStroke}
     stroke-width="1"
+    in:draw={{
+      delay: d.revealLevel === currentDownThreshold ? downStepPathDelay : 0,
+      duration: downDrawDuration,
+    }}
   />
 {/each}
 
 <!-- downward gradual nodes -->
-{#each visibleNodesDown as d}
-  <g transform={`translate(${d.x}, ${yCenter + d.y})`}>
+{#each visibleNodesDown as d (d.data.id)}
+  <g
+    transform={`translate(${d.x}, ${yCenter + d.y})`}
+    in:fade={{
+      delay: 0,
+      duration: DOWN_NODE_FADE_DURATION,
+    }}
+  >
     {#if firstNodeByLevelDown.get(d.revealLevel) === d && !clicked}
       <text x={-10} y={3} font-size="12" fill="white" text-anchor="end">
         {d.data.name.charAt(0).toUpperCase() + d.data.name.slice(1)}
@@ -449,9 +562,9 @@
 {/if}
 
 <!-- upward links -->
-{#each visibleLinksUp as d}
+{#each visibleLinksUp as d (`${d.parent.data.id}→${d.data.id}`)}
   <path
-    d={getUpwardLinkPath(d, yCenter)}
+    d={getUpwardLinkPathReversed(d)}
     fill="none"
     stroke-linecap="round"
     stroke={highlightedLinks.has(`${d.parent.data.id}→${d.data.id}`)
@@ -464,15 +577,24 @@
         : d.data.branch_type === "uppest_trunk"
           ? 5
           : 2}
+    in:draw={{ duration: upDrawDuration }}
   />
 {/each}
 
 <!-- upward nodes -->
-{#each visibleNodesUp as d}
+{#each visibleNodesUp as d (d.data.id)}
   {@const r = nodeRadius(d.data.ppl)}
   {@const sw = strokeWidth(d.data.ppl)}
   {@const dots = getPeopleDots(d.data.ppl)}
-  <g transform={`translate(${d.x}, ${yCenter - d.y})`}>
+  <g
+    transform={`translate(${d.x}, ${yCenter - d.y})`}
+    in:fade={{
+      delay: d.data.step === currentHeightUp
+        ? upStepNodeDelay * UP_NODE_DELAY_FACTOR
+        : 0,
+      duration: 220,
+    }}
+  >
     {#if !clicked}
       {#if labelConfig.has(d.data.type)}
         <rect

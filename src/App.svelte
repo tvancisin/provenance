@@ -45,6 +45,7 @@
   const DETAIL_TITLE_SEGMENTS = 1;
   const INITIAL_LEVEL = -1;
   const DOWN_TO_UP_TRIGGER_LEVEL = 2;
+  const MAX_TREE_SVG_WIDTH = 1300;
 
   let wrapperElement;
   let width;
@@ -60,13 +61,17 @@
   let showIntro = true;
   let innerWidth = 0;
   let details_width = 1;
+  let availableWidth = 0;
+  let cappedTreeWidth = 0;
+  let renderedTreeWidth = 0;
 
   $: innerHeight = height - margin.top - margin.bottom;
+  $: availableWidth = Number(width) || 0;
+  $: cappedTreeWidth = Math.min(availableWidth, MAX_TREE_SVG_WIDTH);
+  $: renderedTreeWidth = clicked ? availableWidth * 0.6 : cappedTreeWidth;
   // recalculate width when node is clicked
-  $: innerWidth = clicked
-    ? (width - margin.left - margin.right) * 0.6
-    : width - margin.left - margin.right;
-  $: details_width = clicked ? (Number(width) || 0) * 0.4 : 1;
+  $: innerWidth = renderedTreeWidth - margin.left - margin.right;
+  $: details_width = clicked ? availableWidth * 0.4 : 1;
   $: yCenter = innerHeight * 0.85;
   $: upHeight = yCenter;
   $: downHeight = innerHeight - upHeight;
@@ -632,11 +637,15 @@
     </div>
   {/if}
 
-  <div class="tree" style={`width: ${clicked ? width * 0.6 : width}px;`}>
+  <div
+    class="tree"
+    style={`width: ${renderedTreeWidth}px; ${clicked ? "" : "margin: 0 auto;"}`}
+  >
     {#if width !== undefined || height !== undefined}
-      <svg width={clicked ? width * 0.6 : width} {height}>
+      <svg width={renderedTreeWidth} {height}>
         <g transform={`translate(${margin.right}, ${margin.top})`}>
           <BackgroundTree
+            {...{ highlightedLinks }}
             {currentLevelUp}
             {ucdpNodes}
             {nodesUp}
@@ -666,9 +675,6 @@
     {/if}
     {#if showStepDescription}
       <div id="step_description">
-        <div id="step_description_text">
-          {@html currentStepDescription}
-        </div>
         <div class="controls">
           <button
             id="back"
@@ -700,6 +706,9 @@
           >
             <i class="fa fa-star" aria-hidden="true"></i>
           </button>
+        </div>
+        <div id="step_description_text">
+          {@html currentStepDescription}
         </div>
       </div>
     {/if}

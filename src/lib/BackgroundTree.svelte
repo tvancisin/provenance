@@ -10,11 +10,11 @@
   export let currentLevelUp;
   export let yCenter;
   export let clicked = false;
+  export let highlightedLinks;
 
   $: researchNode = nodesUp.find((d) => d.data.name == "Research");
   $: subdatabaseNode1 = nodesUp.find((d) => d.data.type == "paax_db");
   $: subdatabaseNode2 = nodesUp.find((d) => d.data.type == "pax_gender_db");
-
   $: visInfographics = nodesUp.find((d) => d.data.name == "Infographics");
   $: visFem = nodesUp.find((d) => d.data.name == "PeaceFem");
   $: ucdpLinks = ucdpNodes.filter((d) => d.parent);
@@ -24,11 +24,35 @@
   $: isResearchDeemphasized = currentLevelUp >= 9;
   $: isSubVisDeemphasized = currentLevelUp >= 15;
   $: isUcdpDeemphasized = currentLevelUp >= 16;
-  $: ucdpLinkStroke = clicked
-    ? "#404040"
-    : isUcdpDeemphasized
-      ? "#404040"
-      : "#404040";
+  $: ucdpLinkStroke = "#404040";
+
+  const BASE_OPACITY = 0.5;
+  const ACTIVE_OPACITY = 1;
+
+  $: highlightedNodeIds = new Set();
+  $: {
+    highlightedNodeIds = new Set();
+    for (const linkId of highlightedLinks ?? []) {
+      const [fromId, toId] = String(linkId).split("→");
+      if (fromId) highlightedNodeIds.add(fromId);
+      if (toId) highlightedNodeIds.add(toId);
+    }
+  }
+
+  function opacityByState(isActive) {
+    return isActive ? ACTIVE_OPACITY : BASE_OPACITY;
+  }
+
+  function isLinkHighlighted(link) {
+    const fromId = link?.parent?.data?.id;
+    const toId = link?.data?.id;
+    if (!fromId || !toId) return false;
+    return highlightedLinks?.has(`${fromId}→${toId}`);
+  }
+
+  function hasHighlightedNode(...nodes) {
+    return nodes.some((node) => highlightedNodeIds.has(String(node?.data?.id)));
+  }
 
   const upwardStrokeByBranchType = {
     trunk: "#003d4d",
@@ -97,19 +121,26 @@
   <path
     fill="none"
     class="sub_db_research"
-    stroke={isResearchDeemphasized ? "#973535" : "#5e2121"}
+    stroke="#973535"
     stroke-width="5"
     stroke-dasharray="10 5"
+    stroke-opacity={opacityByState(
+      isResearchDeemphasized ||
+        hasHighlightedNode(researchNode, subdatabaseNode1, subdatabaseNode2),
+    )}
     d={createBezier(researchNode, subdatabaseNode2, subdatabaseNode1)}
   />
 {/if}
 {#if researchNode && visFem && visInfographics}
   <path
     fill="none"
-    stroke={isSubVisDeemphasized ? "#973535" : "#5e2121"}
+    stroke="#973535"
     class="sub_vis_research"
     stroke-width="5"
     stroke-dasharray="10 5"
+    stroke-opacity={opacityByState(
+      isSubVisDeemphasized || hasHighlightedNode(researchNode, visFem, visInfographics),
+    )}
     d={createBezierUp(researchNode, visFem, visInfographics)}
   />
 {/if}
@@ -120,12 +151,15 @@
     fill="none"
     stroke-linecap={d.data.name === "Research" ? "butt" : "round"}
     stroke={d.data.name === "Research" || d.data.name === "paper"
-      ? isResearchDeemphasized
-        ? "#973535"
-        : "#5e2121"
+      ? "#973535"
       : getUpwardBranchStroke(d.data.branch_type)}
     stroke-dasharray={d.data.name === "Research" ? "10 5" : null}
     class={d.data.name === "Research" ? "research_link" : ""}
+    stroke-opacity={opacityByState(
+      isLinkHighlighted(d) ||
+        ((d.data.name === "Research" || d.data.name === "paper") &&
+          isResearchDeemphasized),
+    )}
     stroke-width={d.data.branch_type === "trunk"
       ? 15
       : d.data.branch_type === "upper_trunk"
@@ -154,7 +188,7 @@
   stroke={ucdpLinkStroke}
   stroke-width="4"
   class="ucdp_link"
-  stroke-opacity="0.7"
+  stroke-opacity={opacityByState(isUcdpDeemphasized)}
 />
 <path
   d={`
@@ -173,7 +207,7 @@
   stroke={ucdpLinkStroke}
   stroke-width="4"
   class="ucdp_link"
-  stroke-opacity="0.7"
+  stroke-opacity={opacityByState(isUcdpDeemphasized)}
 />
 {#each ucdpLinks as d}
   <path
@@ -183,13 +217,16 @@
         ${d.parent.x},${yCenter + d.parent.y}`}
     fill="none"
     stroke={ucdpLinkStroke}
-    stroke-opacity="0.4"
+    stroke-opacity={opacityByState(isUcdpDeemphasized)}
     class="ucdp_link"
     stroke-width="1"
   />
 {/each}
 {#each ucdpNodes as d}
-  <g transform={`translate(${d.x}, ${yCenter + d.y})`}>
+  <g
+    transform={`translate(${d.x}, ${yCenter + d.y})`}
+    opacity={opacityByState(isUcdpDeemphasized)}
+  >
     <circle
       cx="0"
       cy="0"
@@ -218,10 +255,14 @@
     fill="none"
     stroke="#404040"
     stroke-width="2"
+    stroke-opacity={opacityByState(isLinkHighlighted(d))}
   />
 {/each}
 {#each nodesDown as d, i}
-  <g transform={`translate(${d.x}, ${yCenter + d.y})`}>
+  <g
+    transform={`translate(${d.x}, ${yCenter + d.y})`}
+    opacity={opacityByState(hasHighlightedNode(d))}
+  >
     <circle
       cx="0"
       cy="0"
@@ -233,7 +274,14 @@
   </g>
 {/each}
 {#each nodesUp as d}
-  <g transform={`translate(${d.x}, ${yCenter - d.y})`}>
+  <g
+    transform={`translate(${d.x}, ${yCenter - d.y})`}
+    opacity={opacityByState(
+      hasHighlightedNode(d) ||
+        ((d.data.name === "Research" || d.data.name === "paper") &&
+          isResearchDeemphasized),
+    )}
+  >
     <circle
       cx="0"
       cy="0"
