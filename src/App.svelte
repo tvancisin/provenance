@@ -277,12 +277,15 @@
     });
   }
 
+  let activeNodeId = null;
+
   //////////////////////////////// reset to default
   function reset() {
     fullChain = [];
     clicked = null;
     hoveredNodeName = "";
     highlightedLinks = new Set();
+    activeNodeId = null;
     d3.selectAll(".ind_line").style("opacity", 0.5);
   }
 
@@ -669,6 +672,7 @@
             {handleClickEvents}
             {clicked}
             {rootUp}
+            {...{ activeNodeId }}
           />
         </g>
       </svg>
@@ -713,7 +717,7 @@
       </div>
     {/if}
   </div>
-  <Details {fullChain} {details_width} {segment_height} onReset={reset} />
+  <Details {fullChain} {details_width} {segment_height} onReset={reset} onActiveNodeChange={(id) => { activeNodeId = id; }} />
 </div>
 
 <style>

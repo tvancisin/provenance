@@ -14,6 +14,7 @@
   export let handleClickEvents;
   export let rootUp;
   export let clicked;
+  export let activeNodeId = null;
 
   const labelConfig = new Map([
     ["pax_collect", { x: 12 }],
@@ -467,6 +468,9 @@
       stroke={downwardNodeStroke(d, clicked, highlightedNodeIds)}
       stroke-width="2"
     />
+    {#if String(d.data.id) === activeNodeId}
+      <circle cx="0" cy="0" r="9" fill="none" stroke="white" stroke-width="2" pointer-events="none" />
+    {/if}
   </g>
 {/each}
 
@@ -693,9 +697,9 @@
         hoveredNodeIds = new Set();
         handleHoverEvent({ node: null, event });
       }}
-      on:click={() => handleClickEvents({ node: d })}
+      on:click={() => !clicked && handleClickEvents({ node: d })}
       on:keydown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
+        if ((e.key === "Enter" || e.key === " ") && !clicked) {
           handleClickEvents({ node: d });
         }
       }}
@@ -712,5 +716,8 @@
         pointer-events="none"
       />
     {/each}
+    {#if String(d.data.id) === activeNodeId}
+      <circle cx="0" cy="0" r={r + 6} fill="none" stroke="white" stroke-width="2" pointer-events="none" />
+    {/if}
   </g>
 {/each}

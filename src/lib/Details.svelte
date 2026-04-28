@@ -3,11 +3,12 @@
   export let segment_height;
   export let details_width = 1;
   export let onReset = () => {};
+  export let onActiveNodeChange = (_id) => {};
 
   // half height for conflict, negotiation, and agreement segment
   const HALF_HEIGHT_SEGMENT_COUNT = 3;
   // how much segment expands on click
-  const SEGMENT_EXPAND_DELTA = 250;
+  const SEGMENT_EXPAND_DELTA = 230;
   // one lane each: process, time, expertise, methods, errors, text
   const SEGMENT_LANE_COUNT = 6;
   const SEGMENT_SVG_PADDING_X = 8;
@@ -23,7 +24,7 @@
     if (fullChain.length <= 10) {
       return index === totalCount;
     } else {
-      return index >= Math.max(0, totalCount - HALF_HEIGHT_SEGMENT_COUNT - 1);
+      return index >= Math.max(0, totalCount - HALF_HEIGHT_SEGMENT_COUNT - 3);
     }
   }
 
@@ -40,6 +41,12 @@
   ) {
     expandedSegmentIndex = null;
   }
+
+  $: onActiveNodeChange(
+    expandedSegmentIndex !== null && fullChain[expandedSegmentIndex]
+      ? String(fullChain[expandedSegmentIndex].data.id)
+      : null
+  );
 
   $: maxPplInChain = fullChain.reduce((max, node) => {
     const ppl = Number(node?.data?.ppl) || 0;
@@ -464,7 +471,7 @@
     >
       <div
         class="segment-svg-shell"
-        style="height: {currentSegmentHeight}px;"
+        style="height: {currentSegmentHeight}px; background-color: {isExpanded ? '#002933' : '#001C23'};"
         on:click={(event) => handleSegmentClick(event, segmentIndex)}
         on:keydown={(event) => {
           if (event.key === "Enter" || event.key === " ") {
