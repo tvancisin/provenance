@@ -45,7 +45,7 @@
   $: onActiveNodeChange(
     expandedSegmentIndex !== null && fullChain[expandedSegmentIndex]
       ? String(fullChain[expandedSegmentIndex].data.id)
-      : null
+      : null,
   );
 
   $: maxPplInChain = fullChain.reduce((max, node) => {
@@ -74,6 +74,9 @@
     maxMethodsInChain,
     maxExpertiseInChain,
     maxErrorsInChain,
+  );
+  $: conflictSegmentIndex = fullChain.findIndex(
+    (node) => String(node?.data?.name ?? "").toLowerCase() === "conflict",
   );
 
   // process circles logic
@@ -456,6 +459,13 @@
     {@const sw = nodeStrokeWidth(ppl) * scale}
     {@const dots = getPeopleDots(ppl, scale)}
     {@const dotRadius = Math.max(0.8, (segment_height <= 40 ? 1.5 : 2) * scale)}
+    {@const shouldRenderPeopleConnector =
+      conflictSegmentIndex >= 0 && segmentIndex <= conflictSegmentIndex}
+    {@const connectorY1 = segmentIndex === 0 ? currentSegmentHeight / 2 : 0}
+    {@const connectorY2 =
+      segmentIndex === conflictSegmentIndex
+        ? currentSegmentHeight / 2
+        : currentSegmentHeight}
     <div
       class="detail-segment"
       style="
@@ -471,7 +481,9 @@
     >
       <div
         class="segment-svg-shell"
-        style="height: {currentSegmentHeight}px; background-color: {isExpanded ? '#002933' : '#001C23'};"
+        style="height: {currentSegmentHeight}px; background-color: {isExpanded
+          ? '#002933'
+          : '#001C23'};"
         on:click={(event) => handleSegmentClick(event, segmentIndex)}
         on:keydown={(event) => {
           if (event.key === "Enter" || event.key === " ") {
@@ -487,8 +499,22 @@
           focusable="false"
           style="width: {details_width}px; height: {currentSegmentHeight}px;"
         >
-          <g transform="translate({circleCenterX}, {currentSegmentHeight / 2})" style="pointer-events: all;">
-            <title>{ppl} {ppl == 1 ? ' person' : ' people'}</title>
+          {#if shouldRenderPeopleConnector}
+            <line
+              x1={circleCenterX}
+              y1={connectorY1}
+              x2={circleCenterX}
+              y2={connectorY2}
+              stroke="#CC8500"
+              stroke-width="2"
+              vector-effect="non-scaling-stroke"
+            />
+          {/if}
+          <g
+            transform="translate({circleCenterX}, {currentSegmentHeight / 2})"
+            style="pointer-events: all;"
+          >
+            <title>{ppl} {ppl == 1 ? " person" : " people"}</title>
             <circle
               cx="0"
               cy="0"
@@ -508,7 +534,7 @@
               />
             {/each}
           </g>
-          {#if d.data?.time === 'continuous'}
+          {#if d.data?.time === "continuous"}
             {@const contIconSize = Math.min(timeLaneWidth, timeLaneHeight) / 2}
             <g style="pointer-events: all;">
               <title>continuous process</title>
@@ -523,7 +549,7 @@
             </g>
           {:else}
             <g style="pointer-events: all;">
-              <title>{timeValue} {timeValue === 1 ? 'hour' : 'hours'}</title>
+              <title>{timeValue} {timeValue === 1 ? "hour" : "hours"}</title>
               <rect
                 x={timeLaneX}
                 y={timeLaneY}
@@ -539,12 +565,15 @@
             {#each Array.from({ length: methodsCount }, (_, methodIndex) => methodIndex) as methodIndex}
               {@const methodCol = Math.floor(methodIndex / 2)}
               {@const methodRow = methodIndex % 2}
-              {@const methodLabel = Array.isArray(d.data.methods) ? d.data.methods[methodIndex] : ''}
+              {@const methodLabel = Array.isArray(d.data.methods)
+                ? d.data.methods[methodIndex]
+                : ""}
               <g style="pointer-events: all;">
                 <title>{methodLabel}</title>
                 <image
                   href={COG_ICON_HREF}
-                  x={methodsLaneX + methodCol * (methodsIconSize + methodsColGap)}
+                  x={methodsLaneX +
+                    methodCol * (methodsIconSize + methodsColGap)}
                   y={methodsStartY +
                     methodRow * (methodsIconSize + methodsRowGap)}
                   width={methodsIconSize}
@@ -558,7 +587,9 @@
             {#each Array.from({ length: expertiseCount }, (_, expertiseIndex) => expertiseIndex) as expertiseIndex}
               {@const expertiseCol = Math.floor(expertiseIndex / 2)}
               {@const expertiseRow = expertiseIndex % 2}
-              {@const expertiseLabel = Array.isArray(d.data.expertise) ? d.data.expertise[expertiseIndex] : ''}
+              {@const expertiseLabel = Array.isArray(d.data.expertise)
+                ? d.data.expertise[expertiseIndex]
+                : ""}
               <g style="pointer-events: all;">
                 <title>{expertiseLabel}</title>
                 <image
@@ -578,7 +609,9 @@
             {#each Array.from({ length: errorsCount }, (_, errorIndex) => errorIndex) as errorIndex}
               {@const errorCol = Math.floor(errorIndex / 2)}
               {@const errorRow = errorIndex % 2}
-              {@const errorLabel = Array.isArray(d.data.errors) ? d.data.errors[errorIndex] : ''}
+              {@const errorLabel = Array.isArray(d.data.errors)
+                ? d.data.errors[errorIndex]
+                : ""}
               <g style="pointer-events: all;">
                 <title>{errorLabel}</title>
                 <image
@@ -625,9 +658,10 @@
             style="flex: 1; padding: 8px 12px 8px 0; border-right: 1.5px solid #ccc; min-width: 0; overflow-wrap: break-word; overflow-y: auto; max-height: 100%;"
           >
             {#if d.data}
-              {#if d.data.tooltip_name && d.data.ppl && d.data.expertise && d.data.methods && d.data.errors && d.data.time}
+              <span>{d.data.description}</span>
+              <!-- {#if d.data.tooltip_name && d.data.ppl && d.data.expertise && d.data.methods && d.data.errors && d.data.time}
                 <span>
-                  <strong>{d.data.tooltip_name}</strong> involves <strong>{d.data.ppl}</strong>
+                  <strong>{d.data.tooltip_name}</strong> involves/has involved <strong>{d.data.ppl}</strong>
                   {d.data.ppl == 1 ? "person" : "people"}
                   with expertise in <strong>{Array.isArray(d.data.expertise)
                     ? d.data.expertise
@@ -645,7 +679,7 @@
                 </span>
               {:else}
                 {d.data?.segment_text ?? ""}
-              {/if}
+              {/if} -->
             {:else}
               {d.data?.segment_text ?? ""}
             {/if}
